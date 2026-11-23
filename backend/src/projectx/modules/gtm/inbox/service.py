@@ -264,9 +264,15 @@ async def send_reply(services: Any, business_id: uuid.UUID, item_id: uuid.UUID, 
             raise PolicyBlocked("This message isn't linked to a connected account")
         actx = await adapter_context(services, session, account, f"reply to {item.external_id}")
         platform, external_id, kind, thread = item.platform, item.external_id, item.kind, item.thread_id
-    result = await reply(
-        services, account, actx, platform=platform, kind=kind, target_id=external_id, thread_id=thread, text=text
-    )
+        meta = dict(item.meta or {})
+    if platform == "discord" and meta.get("channel_id"):
+        from projectx.modules.gtm.community.discord import reply_in_channel
+
+        result = await reply_in_channel(services, meta, text)
+    else:
+        result = await reply(
+            services, account, actx, platform=platform, kind=kind, target_id=external_id, thread_id=thread, text=text
+        )
     async with services.db.tenant(business_id) as session:
         item = await session.get(InboxItem, item_id)
         assert item is not None

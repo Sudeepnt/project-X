@@ -32,6 +32,8 @@ from projectx.modules.gtm import cycles  # noqa: E402
 from projectx.modules.gtm.ads.api import router as ads_router  # noqa: E402
 from projectx.modules.gtm.analytics.api import public_router as analytics_public_router  # noqa: E402
 from projectx.modules.gtm.analytics.api import router as analytics_router  # noqa: E402
+from projectx.modules.gtm.community.discord import public_router as discord_public_router  # noqa: E402
+from projectx.modules.gtm.community.discord import router as discord_router  # noqa: E402
 from projectx.modules.gtm.compliance.api import public_router as compliance_public_router  # noqa: E402
 from projectx.modules.gtm.compliance.api import router as compliance_router  # noqa: E402
 from projectx.modules.gtm.crm.api import router as crm_router  # noqa: E402
@@ -73,6 +75,7 @@ MODULE = register_module(
             inbox_router,
             compliance_router,
             ads_router,
+            discord_router,
         ],
         public_routers=[
             growth_public_router,
@@ -81,6 +84,7 @@ MODULE = register_module(
             analytics_public_router,
             inbox_public_router,
             compliance_public_router,
+            discord_public_router,
         ],
         on_business_created=seed_defaults,
         daily_cycle=cycles.daily_cycle,

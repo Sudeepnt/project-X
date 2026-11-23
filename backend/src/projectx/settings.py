@@ -104,6 +104,7 @@ class Settings(BaseSettings):
     discord_application_id: str | None = None
     discord_public_key: str | None = None
     discord_bot_token: SecretStr | None = None
+    discord_client_secret: SecretStr | None = None
     ayrshare_api_key: SecretStr | None = None
     whatsapp_graph_version: str = "v24.0"
 

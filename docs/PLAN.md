@@ -67,6 +67,13 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-23 — Discord community bot (M4) over HTTP interactions (Ed25519-verified, 5-minute replay
+  window; no gateway process). Install from the cockpit; the OAuth code exchange proves the server.
+  /ask lands in the shared inbox and follows the same reply policy as every channel (common questions
+  answered in the brand voice, the rest to a person), answered in-channel with a scoped mention;
+  /subscribe records consent evidence and uses double opt-in; /latest shares posts.
+  `projectx discord-commands` installs the slash commands. 95 backend tests.
+
 - 2026-11-23 — Billing (M4) with Dodo Payments: hosted checkout for new subscriptions, in-place prorated
   plan changes, cancel at period end (and undo), customer portal. The plan changes only from verified
   Standard Webhooks, each recorded once (`billing_events`, migration 0003), applied in the tenant's own

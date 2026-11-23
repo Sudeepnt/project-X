@@ -84,6 +84,20 @@ async def _verify_ledger(business_id: str) -> int:
     return 0 if report.ok else 1
 
 
+async def _discord_commands() -> int:
+    from projectx.modules.gtm.community.discord import register_commands
+    from projectx.services import Services
+    from projectx.settings import get_settings
+
+    services = Services.create(get_settings())
+    try:
+        count = await register_commands(services)
+    finally:
+        await services.close()
+    print(f"Registered {count} Discord slash commands.")
+    return 0
+
+
 def _openapi(args: argparse.Namespace) -> None:
     from projectx.api.app import create_app
 
@@ -108,6 +122,7 @@ def main() -> None:
     sub.add_parser("seed-demo", help="create a practice company with sample data")
     verify = sub.add_parser("verify-ledger", help="check a business's ledger hash chain")
     verify.add_argument("business_id")
+    sub.add_parser("discord-commands", help="install or update the Discord bot's slash commands")
     openapi = sub.add_parser("openapi", help="print the OpenAPI document")
     openapi.add_argument("--output", default=None)
     args = parser.parse_args()
@@ -124,6 +139,8 @@ def main() -> None:
         asyncio.run(run_seed())
     elif args.cmd == "verify-ledger":
         sys.exit(asyncio.run(_verify_ledger(args.business_id)))
+    elif args.cmd == "discord-commands":
+        sys.exit(asyncio.run(_discord_commands()))
     elif args.cmd == "openapi":
         _openapi(args)
 

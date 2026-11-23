@@ -1,6 +1,6 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { ExternalLink, FlaskConical, KeyRound, Link2, MoreHorizontal, RefreshCw, RotateCcw } from "lucide-react";
+import { Bot, ExternalLink, FlaskConical, KeyRound, Link2, MoreHorizontal, RefreshCw, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -186,6 +186,17 @@ function PlatformCard({
       setBusy(false);
     }
   };
+  const [botBusy, setBotBusy] = useState(false);
+  const addBot = async () => {
+    setBotBusy(true);
+    try {
+      const { url } = await api.get<{ url: string }>(gpath(bid, "/discord/install"));
+      window.location.assign(url);
+    } catch (e) {
+      toast.error(errorMessage(e));
+      setBotBusy(false);
+    }
+  };
   const posting = POSTING[p.api_posting] ?? { label: p.api_posting, tone: "neutral" as const };
   return (
     <Card className="flex flex-col p-5">
@@ -234,10 +245,22 @@ function PlatformCard({
             icon={<KeyRound className="size-3.5" />}
             onClick={onToken}
           >
-            Connect
+            {p.key === "discord" ? "Announcements webhook" : "Connect"}
+          </Button>
+        ) : null}
+        {p.key === "discord" ? (
+          <Button size="sm" icon={<Bot className="size-3.5" />} onClick={addBot} loading={botBusy}>
+            Add community bot
           </Button>
         ) : null}
       </div>
+      {p.key === "discord" ? (
+        <p className="mt-3 text-[12px] text-muted">
+          The bot answers <span className="font-mono">/ask</span> in your brand voice (anything tricky comes to your
+          inbox), signs people up with <span className="font-mono">/subscribe</span>, and shares{" "}
+          <span className="font-mono">/latest</span> posts.
+        </p>
+      ) : null}
       {p.approval_notes ? <p className="mt-3 text-[11px] leading-relaxed text-faint">{p.approval_notes}</p> : null}
     </Card>
   );
