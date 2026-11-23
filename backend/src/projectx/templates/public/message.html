@@ -1,0 +1,10 @@
+{% extends "public/base.html" %}
+{% block robots %}noindex,nofollow{% endblock %}
+{% block title %}{{ title }} · {{ business.name }}{% endblock %}
+{% block content %}
+<main class="center">
+  <h1>{{ title }}</h1>
+  <p class="lede">{{ body }}</p>
+  {% if business.website %}<p><a class="button" style="width:auto" href="{{ business.website }}">Visit {{ business.name }}</a></p>{% endif %}
+</main>
+{% endblock %}

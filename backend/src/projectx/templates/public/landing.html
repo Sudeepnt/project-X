@@ -1,0 +1,51 @@
+{% extends "public/base.html" %}
+{% block title %}{{ content.headline or page.title }} · {{ business.name }}{% endblock %}
+{% block meta %}
+<meta name="description" content="{{ content.subheadline or page.title }}">
+<meta property="og:title" content="{{ content.headline or page.title }}">
+<meta property="og:description" content="{{ content.subheadline or '' }}">
+<meta property="og:type" content="website">
+{% endblock %}
+{% block content %}
+<main class="grid">
+  <section>
+    <h1>{{ content.headline or page.title }}</h1>
+    {% if content.subheadline %}<p class="lede">{{ content.subheadline }}</p>{% endif %}
+    {% if content.body %}<p>{{ content.body }}</p>{% endif %}
+    {% if content.bullets %}
+    <ul class="points">{% for point in content.bullets %}<li>{{ point }}</li>{% endfor %}</ul>
+    {% endif %}
+    {% if content.proof %}<p class="fine" style="text-align:left">{{ content.proof }}</p>{% endif %}
+  </section>
+  <section class="card" aria-label="Sign up">
+    <form method="post" novalidate>
+      {% if "name" in fields %}
+      <div class="field"><label for="name">Name</label>
+        <input id="name" name="name" type="text" autocomplete="name" maxlength="200"></div>
+      {% endif %}
+      <div class="field"><label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="email" inputmode="email" required maxlength="254"></div>
+      {% if "company" in fields %}
+      <div class="field"><label for="company">Company</label>
+        <input id="company" name="company" type="text" autocomplete="organization" maxlength="200"></div>
+      {% endif %}
+      {% if "phone" in fields %}
+      <div class="field"><label for="phone">Phone</label>
+        <input id="phone" name="phone" type="tel" autocomplete="tel" maxlength="32"></div>
+      {% endif %}
+      {% if "message" in fields %}
+      <div class="field"><label for="message">Message</label>
+        <textarea id="message" name="message" rows="4" maxlength="2000"></textarea></div>
+      {% endif %}
+      {% if consent_text %}
+      <label class="consent"><input type="checkbox" name="consent" value="on"><span>{{ consent_text }}</span></label>
+      {% endif %}
+      <div class="hp" aria-hidden="true"><label for="website">Leave this empty</label>
+        <input id="website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+      {% for key, value in hidden.items() %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+      <button type="submit">{{ content.cta_label or "Continue" }}</button>
+      <p class="fine">We respect your inbox. Unsubscribe any time.</p>
+    </form>
+  </section>
+</main>
+{% endblock %}

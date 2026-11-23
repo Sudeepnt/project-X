@@ -1,0 +1,12 @@
+{% extends "public/base.html" %}
+{% block robots %}noindex,nofollow{% endblock %}
+{% block title %}Unsubscribe · {{ business.name }}{% endblock %}
+{% block content %}
+<main class="center">
+  <h1>Unsubscribe?</h1>
+  <p class="lede">You'll stop getting marketing emails from {{ business.name }}.</p>
+  <form method="post" action="/u/{{ token }}" style="max-width:320px;margin:0 auto">
+    <button type="submit">Unsubscribe</button>
+  </form>
+</main>
+{% endblock %}
