@@ -24,10 +24,12 @@ for _name in (
     "projectx.modules.gtm.channels.accounts",
     "projectx.modules.gtm.analytics.report",
     "projectx.modules.gtm.inbox.service",
+    "projectx.modules.gtm.ads.service",
 ):
     importlib.import_module(_name)
 
 from projectx.modules.gtm import cycles  # noqa: E402
+from projectx.modules.gtm.ads.api import router as ads_router  # noqa: E402
 from projectx.modules.gtm.analytics.api import public_router as analytics_public_router  # noqa: E402
 from projectx.modules.gtm.analytics.api import router as analytics_router  # noqa: E402
 from projectx.modules.gtm.compliance.api import public_router as compliance_public_router  # noqa: E402
@@ -70,6 +72,7 @@ MODULE = register_module(
             analytics_router,
             inbox_router,
             compliance_router,
+            ads_router,
         ],
         public_routers=[
             growth_public_router,

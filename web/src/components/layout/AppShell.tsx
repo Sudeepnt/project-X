@@ -3,6 +3,7 @@ import * as Popover from "@radix-ui/react-popover";
 import { Link, Outlet, useNavigate, useParams, useRouterState } from "@tanstack/react-router";
 import { Command } from "cmdk";
 import {
+  BadgeDollarSign,
   BarChart3,
   Bell,
   BookOpen,
@@ -57,6 +58,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { to: "campaigns", label: "Campaigns", icon: <Megaphone className="size-[18px]" /> },
       { to: "content", label: "Content", icon: <Calendar className="size-[18px]" /> },
       { to: "channels", label: "Channels", icon: <Plug className="size-[18px]" /> },
+      { to: "ads", label: "Ads", icon: <BadgeDollarSign className="size-[18px]" /> },
     ],
   },
   {

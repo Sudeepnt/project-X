@@ -67,6 +67,15 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-23 — Ads engine (M4): Meta Marketing API (campaign → ad set → creative → ad, built paused and
+  switched on last), Google Ads REST (link an existing campaign; budget, status, metrics; OAuth refresh),
+  practice simulator. Caps in two places: our monthly cap checked at proposal *and* execution time, mirrored
+  to the platform's spending limit where it exists. Starting ads and raising budgets always ask; lowering
+  applies at once; stop rules pause at 2x target CPL for 3 days, after 3 days of budget with no results, and
+  when the cap is reached. Politics never automated; housing/employment/credit can't use lookalikes. Goal
+  guardrails (daily/total budget, CPL cap) enforced. Ads screen in the cockpit. CI fixed (it had never run)
+  and green. Planner no longer schedules inside the next hour. 83 backend + 12 web tests.
+
 - 2026-11-23 — Web cockpit shipped: design system (light/dark, Apple-style), hand-rolled SVG charts,
   auth + onboarding, Today, Decisions (edit-then-approve), Goals (live forecast, pace chart), Campaigns,
   Content (calendar), Channels, Audience (people/funnel/deals/payments), Inbox, Email, Pages & links

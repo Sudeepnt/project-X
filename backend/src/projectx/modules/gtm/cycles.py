@@ -14,7 +14,7 @@ from projectx.kernel.time import today_in, utcnow
 from projectx.modules.gtm.crm.automations import mark_inactive_customers
 from projectx.modules.gtm.goals.metrics import churn_rate, new_customers, new_leads, new_subscribers, revenue
 from projectx.modules.gtm.goals.service import goal_view, pace_all
-from projectx.modules.gtm.models import Campaign, ChannelAccount, ContentItem, Goal, Post
+from projectx.modules.gtm.models import AdCampaign, Campaign, ChannelAccount, ContentItem, Goal, Post
 from projectx.services import Services
 from projectx.spine.jobs.queue import enqueue
 from projectx.spine.modules import BriefingItem
@@ -50,6 +50,10 @@ async def daily_cycle(services: Services, business_id: uuid.UUID) -> None:
         await enqueue(
             session, "gtm.build_newsletter", business_id=business_id, idempotency_key=f"newsletter:{business_id}:{day}"
         )
+        if await session.scalar(
+            select(AdCampaign.id).where(AdCampaign.business_id == business_id, AdCampaign.status == "active").limit(1)
+        ):
+            await enqueue(session, "gtm.ads_daily", business_id=business_id, idempotency_key=f"ads:{business_id}:{day}")
 
 
 async def weekly_cycle(services: Services, business_id: uuid.UUID) -> None:

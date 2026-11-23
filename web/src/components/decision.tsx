@@ -25,6 +25,19 @@ interface PreviewVariant {
   spec?: { brand?: CheckT; specs?: CheckT; ai_label?: string };
 }
 
+/** Turn a forecast into readable rows: `*_minor` values are money, `currency` is a unit, not a row. */
+export function forecastRows(forecast: Record<string, unknown>, fallbackCurrency: string | null): [string, string][] {
+  const currency = typeof forecast.currency === "string" ? forecast.currency : (fallbackCurrency ?? "USD");
+  return Object.entries(forecast)
+    .filter(([k, v]) => k !== "currency" && v != null && typeof v !== "object")
+    .map(([k, v]) => {
+      if (k.endsWith("_minor") && typeof v === "number")
+        return [sentence(k.replace(/_minor$/, "")), formatMoney(v, currency)];
+      if (typeof v === "number") return [sentence(k), Number.isInteger(v) ? v.toLocaleString() : v.toFixed(2)];
+      return [sentence(k), String(v)];
+    });
+}
+
 export function ChecksList({ checks }: { checks: Record<string, CheckT | string | undefined> | undefined }) {
   if (!checks) return null;
   const rows = Object.entries(checks).filter((e): e is [string, CheckT] => typeof e[1] === "object" && e[1] != null);
@@ -251,10 +264,10 @@ export function DecisionSheet({ bid, id, onClose }: { bid: string; id: string | 
               </div>
             ) : null}
             {d.forecast
-              ? Object.entries(d.forecast).map(([k, v]) => (
-                  <div key={k}>
-                    <dt className="text-muted">{sentence(k)}</dt>
-                    <dd className="mt-0.5 font-medium tabular">{String(v)}</dd>
+              ? forecastRows(d.forecast, d.currency).map(([label, value]) => (
+                  <div key={label}>
+                    <dt className="text-muted">{label}</dt>
+                    <dd className="mt-0.5 font-medium tabular">{value}</dd>
                   </div>
                 ))
               : null}
