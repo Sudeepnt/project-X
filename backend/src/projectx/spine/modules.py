@@ -51,6 +51,8 @@ class Module:
     on_manual_task_done: Callable[[Services, uuid.UUID, Decision], Awaitable[None]] | None = None
     briefing: Callable[[AsyncSession, uuid.UUID], Awaitable[list[BriefingItem]]] | None = None
     numbers: Callable[[AsyncSession, uuid.UUID], Awaitable[dict[str, Any]]] | None = None
+    # Live counts of things a plan limits ("contacts", "platforms", …), for quotas and the usage page.
+    usage_counts: Callable[[AsyncSession, uuid.UUID], Awaitable[dict[str, int]]] | None = None
 
 
 _MODULES: dict[str, Module] = {}

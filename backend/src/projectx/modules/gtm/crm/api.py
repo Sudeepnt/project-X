@@ -33,6 +33,7 @@ from projectx.modules.gtm.crm.lifecycle import (
 )
 from projectx.modules.gtm.crm.payments import payment_view, record_payment
 from projectx.modules.gtm.models import Message, SequenceEnrollment
+from projectx.spine.billing.plans import check_quota, remaining
 from projectx.spine.jobs.queue import enqueue
 from projectx.spine.ledger.service import Actor
 from projectx.spine.twin.models import STAGES, Contact, ContactStageChange, Deal, Payment, Pipeline, Touch
@@ -144,6 +145,7 @@ async def list_contacts(
 
 @router.post("/contacts", status_code=status.HTTP_201_CREATED)
 async def create_contact(body: ContactIn, ctx: EditorDep) -> dict[str, Any]:
+    await check_quota(ctx.session, ctx.business, "contacts")
     actor = Actor.user(ctx.user.id)
     consent = None
     if body.consent:
@@ -334,6 +336,8 @@ async def import_contacts(
     reader = csv.DictReader(io.StringIO(raw.decode("utf-8-sig", errors="replace")))
     created = updated = skipped = 0
     actor = Actor.user(ctx.user.id)
+    room = await remaining(ctx.session, ctx.business, "contacts")
+    over_limit = 0
     for i, row in enumerate(reader):
         if i >= 20_000:
             break
@@ -367,9 +371,21 @@ async def import_contacts(
             contact.company = lowered["company"][:200]
         if lowered.get("tags"):
             contact.tags = sorted(set(contact.tags or []) | {t.strip()[:50] for t in lowered["tags"].split(";") if t})
+        if was_created and room is not None:
+            if room <= 0:  # plan limit: undo this one, keep updating existing contacts
+                await ctx.session.delete(contact)
+                over_limit += 1
+                continue
+            room -= 1
         created += int(was_created)
         updated += int(not was_created)
-    return {"created": created, "updated": updated, "skipped": skipped, "consent_recorded": consent_confirmed}
+    return {
+        "created": created,
+        "updated": updated,
+        "skipped": skipped + over_limit,
+        "over_plan_limit": over_limit,
+        "consent_recorded": consent_confirmed,
+    }
 
 
 @router.get("/funnel")

@@ -572,8 +572,25 @@ function Meter({ label, used, limit }: { label: string; used: number; limit: num
   );
 }
 
+interface Billing {
+  plan: string;
+  plan_name: string;
+  status: string;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+  configured: boolean;
+  for_sale: string[];
+  can_manage: boolean;
+}
+
+const PLAN_RANK: Record<string, number> = { free: 0, autopilot: 1, growth: 2, scale: 3 };
+
 function PlanTab({ bid }: { bid: string }) {
+  const search = useSearch({ strict: false }) as { checkout?: string };
   const { data, isLoading, error } = useApi<Usage>(bpath(bid, "/usage"));
+  const { data: billing } = useApi<Billing>(bpath(bid, "/billing"), {
+    refetchInterval: search.checkout === "done" ? 4000 : undefined,
+  });
   const { data: plans } =
     useApi<
       {
@@ -585,6 +602,28 @@ function PlanTab({ bid }: { bid: string }) {
         highlights: string[];
       }[]
     >("/api/v1/plans");
+  const inv = [bpath(bid, "/billing"), bpath(bid, "/usage"), "/api/v1/auth/me"];
+  const choose = useAction(
+    (plan: string) => api.post<{ mode: string; url: string | null }>(bpath(bid, "/billing/checkout"), { plan }),
+    {
+      invalidate: inv,
+      onSuccess: (r) => {
+        if (r.url) window.location.assign(r.url);
+        else toast.success("Changing your plan. It updates as soon as the payment provider confirms.");
+      },
+    },
+  );
+  const portal = useAction(() => api.post<{ url: string }>(bpath(bid, "/billing/portal")), {
+    onSuccess: (r) => window.location.assign(r.url),
+  });
+  const cancel = useAction((undo: boolean) => api.post(bpath(bid, "/billing/cancel"), { undo }), {
+    invalidate: inv,
+    success: (r) =>
+      (r as Billing).cancel_at_period_end ? "Your plan ends at the end of this period" : "Your plan continues",
+  });
+  useEffect(() => {
+    if (search.checkout === "done") toast.success("Thanks! Your plan updates as soon as the payment is confirmed.");
+  }, [search.checkout]);
   if (isLoading) return <Loading />;
   if (error) return <LoadError error={error} />;
   const u = data!;
@@ -597,6 +636,45 @@ function PlanTab({ bid }: { bid: string }) {
           <h3 className="text-[16px] font-semibold">{u.plan.name} plan</h3>
           <span className="text-[14px] text-muted tabular">${u.plan.price_usd_month}/month</span>
         </div>
+        {billing?.status === "past_due" ? (
+          <p className="mt-3 rounded-[10px] bg-[var(--critical-soft)] px-3 py-2 text-[13px] text-critical">
+            Your last payment didn't go through. Update your card to keep this plan.
+          </p>
+        ) : null}
+        {billing?.current_period_end ? (
+          <p className="mt-2 text-[13px] text-muted">
+            {billing.cancel_at_period_end ? "Ends" : "Renews"} on {formatDateTime(billing.current_period_end)}
+          </p>
+        ) : null}
+        {billing?.can_manage ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button size="sm" onClick={() => portal.mutate()} loading={portal.isPending}>
+              Manage billing
+            </Button>
+            {billing.cancel_at_period_end ? (
+              <Button size="sm" variant="ghost" onClick={() => cancel.mutate(true)} loading={cancel.isPending}>
+                Keep my plan
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={async () =>
+                  (await ask({
+                    title: "Cancel your plan?",
+                    body: "You keep everything until the end of this billing period, then move to Free.",
+                    confirmLabel: "Cancel plan",
+                    destructive: true,
+                  })) && cancel.mutate(false)
+                }
+              >
+                Cancel plan
+              </Button>
+            )}
+          </div>
+        ) : billing && !billing.configured ? (
+          <p className="mt-3 text-[13px] text-muted">Paid plans open soon on this server.</p>
+        ) : null}
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           {Object.entries(u.metrics).map(([k, m]) => (
             <Meter key={k} label={sentence(k)} used={m.used} limit={m.limit} />
@@ -628,9 +706,19 @@ function PlanTab({ bid }: { bid: string }) {
                 ))}
               </ul>
               {p.key === u.plan.key ? (
-                <div className="mt-1 text-[12px] font-medium text-accent">Current plan</div>
+                <div className="mt-3 text-[12px] font-medium text-accent">Current plan</div>
+              ) : p.key === "free" ? null : billing?.for_sale.includes(p.key) ? (
+                <Button
+                  size="sm"
+                  variant={(PLAN_RANK[p.key] ?? 0) > (PLAN_RANK[u.plan.key] ?? 0) ? "primary" : "secondary"}
+                  className="mt-3 w-full justify-center"
+                  loading={choose.isPending && choose.variables === p.key}
+                  onClick={() => choose.mutate(p.key)}
+                >
+                  {(PLAN_RANK[p.key] ?? 0) > (PLAN_RANK[u.plan.key] ?? 0) ? "Upgrade" : "Switch"}
+                </Button>
               ) : (
-                <div className="mt-1 text-[12px] text-muted">Billing opens soon</div>
+                <div className="mt-3 text-[12px] text-muted">Not for sale yet</div>
               )}
             </div>
           ))}

@@ -847,3 +847,84 @@ def campaign_view(c: AdCampaign, metrics: list[AdMetricDaily]) -> dict[str, Any]
             for m in sorted(metrics, key=lambda m: m.day)
         ],
     }
+
+
+# ---------------------------------------------------------------- Scale plan: share of ad spend
+
+
+@job("gtm.ads_share", max_attempts=6, timeout_s=120, priority=60)
+async def report_ad_share(ctx: JobContext) -> dict[str, Any]:
+    """On the 1st: report last month's management fee (a share of ad spend) to billing.
+
+    Dodo meters charge in USD. Spend in another currency is recorded and flagged for a manual invoice
+    rather than converted at a rate nobody agreed to.
+    """
+    from projectx.spine.billing import service as billing
+    from projectx.spine.billing.plans import plan_for
+
+    business_id = ctx.require_business()
+    period = str(ctx.payload["period"])  # YYYY-MM
+    year, month = (int(x) for x in period.split("-"))
+    start = date(year, month, 1)
+    end = date(year, month, calendar.monthrange(year, month)[1])
+    async with ctx.services.db.tenant(business_id) as session:
+        business = await session.get(Business, business_id)
+        assert business is not None
+        bps = plan_for(business.plan).ad_spend_share_bps
+        if not bps:
+            return {"skipped": "plan has no ad-spend share"}
+        rows = (
+            await session.execute(
+                select(AdAccount.currency, func.coalesce(func.sum(AdMetricDaily.spend_minor), 0))
+                .join(AdCampaign, AdCampaign.ad_account_id == AdAccount.id)
+                .join(AdMetricDaily, AdMetricDaily.ad_campaign_id == AdCampaign.id)
+                .where(
+                    AdAccount.business_id == business_id,
+                    AdAccount.status != "practice",
+                    AdMetricDaily.day >= start,
+                    AdMetricDaily.day <= end,
+                )
+                .group_by(AdAccount.currency)
+            )
+        ).all()
+        sub = await billing.subscription_of(session, business_id)
+        reported = []
+        for currency, spend in rows:
+            fee = int(spend) * bps // 10_000
+            if fee <= 0:
+                continue
+            charged = False
+            if currency == "USD" and sub.provider_customer_id and ctx.services.settings.dodo_api_key:
+                await billing.client(ctx.services).ingest_usage(
+                    event_id=f"adshare:{business_id}:{period}:{currency}",  # idempotent at the provider too
+                    customer_id=sub.provider_customer_id,
+                    event_name=ctx.services.settings.dodo_ad_share_event,
+                    metadata={"fee_cents": fee, "ad_spend_cents": int(spend), "period": period},
+                )
+                charged = True
+            else:
+                await notify(
+                    session,
+                    business_id,
+                    kind="billing.ad_share_manual",
+                    level="info",
+                    title=f"Ad management fee for {period}: {fee / 100:,.2f} {currency}",
+                    body="We'll invoice this separately because it isn't in US dollars.",
+                    link="/settings?tab=plan",
+                )
+            await append(
+                session,
+                business_id=business_id,
+                type="spine.billing.usage",
+                actor=AGENT,
+                data={
+                    "metric": "ad_spend_share",
+                    "amount_minor": fee,
+                    "currency": currency,
+                    "period": period,
+                    "charged": charged,
+                },
+                idempotency_key=f"adshare:{period}:{currency}",
+            )
+            reported.append({"currency": currency, "fee_minor": fee, "charged": charged})
+    return {"period": period, "reported": reported}

@@ -12,6 +12,7 @@ from sqlalchemy import select
 
 from projectx.api.deps import AdminDep, AuthDep, BusinessDep, OwnerDep, ServicesDep, SessionDep
 from projectx.kernel.errors import Conflict, NotFound, ValidationFailed
+from projectx.spine.billing.plans import check_quota
 from projectx.spine.identity.models import User
 from projectx.spine.identity.service import issue_email_token
 from projectx.spine.ledger.service import Actor, append
@@ -121,6 +122,7 @@ async def members(ctx: BusinessDep) -> list[dict[str, Any]]:
 
 @router.post("/b/{business_id}/members/invite", status_code=status.HTTP_202_ACCEPTED)
 async def invite(body: InviteIn, ctx: AdminDep) -> dict[str, Any]:
+    await check_quota(ctx.session, ctx.business, "seats")
     settings = ctx.services.settings
     token = await issue_email_token(
         ctx.session,

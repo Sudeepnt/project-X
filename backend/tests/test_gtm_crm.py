@@ -174,7 +174,7 @@ async def test_funnel_and_import(founder: Any, business: dict[str, Any]) -> None
         data={"consent_confirmed": "true", "stage": "subscriber"},
     )
     assert res.status_code == 200, res.text
-    assert res.json() == {"created": 2, "updated": 0, "skipped": 1, "consent_recorded": True}
+    assert res.json() == {"created": 2, "updated": 0, "skipped": 1, "over_plan_limit": 0, "consent_recorded": True}
     funnel = (await founder.get(gtm(business, "/funnel"))).json()
     subscriber = next(s for s in funnel["stages"] if s["stage"] == "subscriber")
     assert subscriber["count"] >= 2

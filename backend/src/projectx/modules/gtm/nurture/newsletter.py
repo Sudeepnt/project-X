@@ -17,11 +17,14 @@ from projectx.modules.gtm.config import gtm_settings
 from projectx.modules.gtm.models import ContentItem, ContentVariant, Message, NewsletterIssue
 from projectx.modules.gtm.nurture.sequences import build_email
 from projectx.services import Services
+from projectx.spine.billing.plans import add_usage
+from projectx.spine.billing.plans import remaining as plan_remaining
 from projectx.spine.decisions.executors import ExecutionContext, ExecutionResult, executor, undoer
 from projectx.spine.decisions.service import Proposal, propose
 from projectx.spine.jobs.queue import enqueue
 from projectx.spine.jobs.registry import JobContext, job
 from projectx.spine.ledger.service import Actor, append
+from projectx.spine.notifications.service import notify
 from projectx.spine.tenancy.models import Business
 from projectx.spine.twin.models import Consent, Contact
 
@@ -238,6 +241,20 @@ async def send_issue_batch(ctx: JobContext) -> dict[str, Any] | None:
                 .limit(BATCH)
             )
         ).all()
+        room = await plan_remaining(session, business, "emails_per_month") if business else None
+        if room is not None and room < len(queued):
+            for m, _ in queued[room:]:  # over the plan's monthly email limit: don't send, say why
+                m.status, m.error = "suppressed", "monthly email limit reached on the plan"
+            queued = queued[:room]
+            await notify(
+                session,
+                business_id,
+                kind="billing.limit_reached",
+                level="warning",
+                title="Monthly email limit reached",
+                body="Some subscribers didn't get this issue. Upgrade to send to everyone.",
+                link="/settings?tab=plan",
+            )
         jobs = [(m.id, c.email, m.subject, m.body_html, m.body_text) for m, c in queued]
         reply_to = (business.settings or {}).get("reply_to_email") if business else None
         from_name = business.name if business else "Newsletter"
@@ -259,6 +276,7 @@ async def send_issue_batch(ctx: JobContext) -> dict[str, Any] | None:
             message = await session.get(Message, message_id)
             if message is not None:
                 message.status, message.provider_id, message.sent_at = "sent", provider_id, utcnow()
+                await add_usage(session, business_id, "emails_per_month")
         sent += 1
     async with ctx.services.db.tenant(business_id) as session:
         remaining = await session.scalar(

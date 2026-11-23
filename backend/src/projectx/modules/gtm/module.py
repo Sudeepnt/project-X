@@ -88,5 +88,6 @@ MODULE = register_module(
         on_manual_task_done=on_manual_task_done,
         briefing=cycles.briefing,
         numbers=cycles.numbers,
+        usage_counts=cycles.usage_counts,
     )
 )

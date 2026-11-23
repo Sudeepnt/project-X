@@ -27,7 +27,7 @@ from projectx.modules.gtm.models import (
 )
 from projectx.modules.gtm.platforms import PLATFORMS
 from projectx.services import Services
-from projectx.spine.billing.plans import add_usage
+from projectx.spine.billing.plans import add_usage, remaining
 from projectx.spine.decisions.executors import ExecutionContext, ExecutionResult, executor, undoer
 from projectx.spine.jobs.queue import enqueue
 from projectx.spine.jobs.registry import JobContext, PermanentFailure, RetryLater, job, periodic
@@ -217,6 +217,19 @@ async def publish(ctx: JobContext) -> dict[str, Any] | None:
         spec = PLATFORMS.get(account.platform)
         if spec and spec.daily_post_limit and await _published_last_24h(session, account.id) >= spec.daily_post_limit:
             raise RetryLater(3600, f"{spec.label} daily limit reached")
+        business = await session.get(Business, business_id)
+        if business is not None and await remaining(session, business, "posts_per_month") == 0:
+            post.status, post.last_error = "failed", "Monthly post limit reached on your plan"
+            await notify(
+                session,
+                business_id,
+                kind="billing.limit_reached",
+                level="warning",
+                title="Monthly post limit reached",
+                body="Posts pause until next month, or upgrade to keep publishing.",
+                link="/settings?tab=plan",
+            )
+            raise PermanentFailure("monthly post limit reached")
         post.status = "publishing"
         post.attempts += 1
         actx = await adapter_context(services, session, account, f"publish post {post.id}")

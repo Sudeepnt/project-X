@@ -54,6 +54,16 @@ async def daily_cycle(services: Services, business_id: uuid.UUID) -> None:
             select(AdCampaign.id).where(AdCampaign.business_id == business_id, AdCampaign.status == "active").limit(1)
         ):
             await enqueue(session, "gtm.ads_daily", business_id=business_id, idempotency_key=f"ads:{business_id}:{day}")
+        local_today = today_in(business.timezone)
+        if local_today.day == 1:
+            last = (local_today - timedelta(days=1)).strftime("%Y-%m")
+            await enqueue(
+                session,
+                "gtm.ads_share",
+                {"period": last},
+                business_id=business_id,
+                idempotency_key=f"adshare:{business_id}:{last}",
+            )
 
 
 async def weekly_cycle(services: Services, business_id: uuid.UUID) -> None:
@@ -213,3 +223,24 @@ async def briefing(session: AsyncSession, business_id: uuid.UUID) -> list[Briefi
             )
         )
     return items
+
+
+async def usage_counts(session: AsyncSession, business_id: uuid.UUID) -> dict[str, int]:
+    """What GTM holds that plans limit: connected platforms, live contacts, landing pages."""
+    from projectx.modules.gtm.models import LandingPage
+    from projectx.spine.twin.models import Contact
+
+    platforms = await session.scalar(
+        select(func.count(func.distinct(ChannelAccount.platform))).where(
+            ChannelAccount.business_id == business_id, ChannelAccount.status.in_(("connected", "practice", "expired"))
+        )
+    )
+    contacts = await session.scalar(
+        select(func.count()).select_from(Contact).where(Contact.business_id == business_id, Contact.erased_at.is_(None))
+    )
+    pages = await session.scalar(
+        select(func.count())
+        .select_from(LandingPage)
+        .where(LandingPage.business_id == business_id, LandingPage.status != "archived")
+    )
+    return {"platforms": int(platforms or 0), "contacts": int(contacts or 0), "landing_pages": int(pages or 0)}

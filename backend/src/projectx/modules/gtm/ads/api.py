@@ -15,6 +15,7 @@ from projectx.kernel.errors import NotFound
 from projectx.kernel.time import today_in
 from projectx.modules.gtm.ads import service as ads
 from projectx.modules.gtm.models import AdAccount, AdCampaign, AdMetricDaily, ContentItem, Post
+from projectx.spine.billing.plans import require_feature
 from projectx.spine.jobs.queue import enqueue
 from projectx.spine.ledger.service import Actor
 
@@ -80,6 +81,7 @@ class PracticeAccountIn(BaseModel):
 
 @router.post("/accounts/practice", status_code=status.HTTP_201_CREATED)
 async def add_practice_account(body: PracticeAccountIn, ctx: OwnerDep) -> dict[str, Any]:
+    require_feature(ctx.business, "ads")
     account = await ads.connect_practice(
         ctx.session, ctx.business, platform=body.platform, monthly_cap_minor=body.monthly_cap_minor
     )
@@ -97,6 +99,7 @@ class TokenAccountIn(BaseModel):
 
 @router.post("/accounts", status_code=status.HTTP_201_CREATED)
 async def add_account(body: TokenAccountIn, ctx: OwnerDep) -> dict[str, Any]:
+    require_feature(ctx.business, "ads")
     account = await ads.connect_token(
         ctx.session,
         ctx.services,
@@ -146,6 +149,7 @@ class CampaignIn(BaseModel):
 
 @router.post("/campaigns", status_code=status.HTTP_201_CREATED)
 async def create_campaign(body: CampaignIn, ctx: EditorDep) -> dict[str, Any]:
+    require_feature(ctx.business, "ads")
     account = await ctx.session.get(AdAccount, body.ad_account_id)
     if account is None:
         raise NotFound("Ad account not found")
@@ -187,6 +191,7 @@ class BudgetIn(BaseModel):
 
 @router.post("/campaigns/{ad_id}/budget")
 async def change_budget(ad_id: uuid.UUID, body: BudgetIn, ctx: EditorDep) -> dict[str, Any]:
+    require_feature(ctx.business, "ads")
     ad = await _get(ctx, ad_id)
     outcome = await ads.propose_budget(
         ctx.session,
@@ -214,6 +219,7 @@ async def pause(ad_id: uuid.UUID, ctx: EditorDep) -> dict[str, Any]:
 
 @router.post("/campaigns/{ad_id}/resume")
 async def resume(ad_id: uuid.UUID, ctx: AdminDep) -> dict[str, Any]:
+    require_feature(ctx.business, "ads")
     ad = await _get(ctx, ad_id)
     await ads.resume(ctx.session, ctx.services, ctx.business, ad, actor=Actor.user(ctx.user.id))
     return {"campaign": ads.campaign_view(ad, [])}

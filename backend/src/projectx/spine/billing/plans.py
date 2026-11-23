@@ -166,16 +166,68 @@ async def usage(session: AsyncSession, business_id: uuid.UUID, metric: str, peri
     return int(value or 0)
 
 
-async def check_quota(session: AsyncSession, business: Business, metric: str, amount: int = 1) -> None:
+# Limits on how many of something exist (checked against live counts), not how many happened this month.
+STOCK_METRICS = frozenset({"platforms", "contacts", "landing_pages", "seats"})
+
+
+async def current_counts(session: AsyncSession, business_id: uuid.UUID) -> dict[str, int]:
+    from sqlalchemy import func
+
+    from projectx.spine.modules import modules
+    from projectx.spine.tenancy.models import Membership
+
+    counts = {
+        "seats": int(
+            await session.scalar(
+                select(func.count()).select_from(Membership).where(Membership.business_id == business_id)
+            )
+            or 0
+        )
+    }
+    for module in modules():
+        if module.usage_counts is not None:
+            counts.update(await module.usage_counts(session, business_id))
+    return counts
+
+
+async def used(session: AsyncSession, business_id: uuid.UUID, metric: str) -> int:
+    if metric in STOCK_METRICS:
+        return (await current_counts(session, business_id)).get(metric, 0)
+    return await usage(session, business_id, metric)
+
+
+async def remaining(session: AsyncSession, business: Business, metric: str) -> int | None:
+    """How many more the plan allows; None means unlimited."""
     limit = plan_for(business.plan).limits.get(metric)
     if limit is None:
+        return None
+    return max(limit - await used(session, business.id, metric), 0)
+
+
+async def check_quota(session: AsyncSession, business: Business, metric: str, amount: int = 1) -> None:
+    plan = plan_for(business.plan)
+    limit = plan.limits.get(metric)
+    if limit is None:
         return
-    used = await usage(session, business.id, metric)
-    if used + amount > limit:
-        raise QuotaExceeded(
-            f"You've used {used} of {limit} {metric.replace('_', ' ')} this month.",
-            extra={"metric": metric, "limit": limit, "used": used},
+    current = await used(session, business.id, metric)
+    if current + amount > limit:
+        nxt = next(
+            (
+                PLANS[k]
+                for k in PLAN_ORDER[PLAN_ORDER.index(plan.key) + 1 :]
+                if (PLANS[k].limits.get(metric) or 10**12) > limit
+            ),
+            None,
         )
+        when = "" if metric in STOCK_METRICS else " this month"
+        raise QuotaExceeded(
+            f"Your {plan.name} plan allows {limit} {metric.replace('_', ' ')}{when}; you're at {current}."
+            + (f" {nxt.name} raises it." if nxt else ""),
+            extra={"metric": metric, "limit": limit, "used": current, "upgrade_to": nxt.key if nxt else None},
+        )
+
+
+NUDGE_AT = 0.8
 
 
 async def add_usage(session: AsyncSession, business_id: uuid.UUID, metric: str, amount: int = 1) -> int:
@@ -185,4 +237,32 @@ async def add_usage(session: AsyncSession, business_id: uuid.UUID, metric: str, 
         set_={"value": UsageCounter.value + amount},
     )
     await session.execute(stmt)
-    return await usage(session, business_id, metric)
+    used = await usage(session, business_id, metric)
+    await _nudge_if_crossed(session, business_id, metric, before=used - amount, after=used)
+    return used
+
+
+async def _nudge_if_crossed(
+    session: AsyncSession, business_id: uuid.UUID, metric: str, *, before: int, after: int
+) -> None:
+    """One heads-up per metric per month, the moment usage crosses 80% of the plan's limit."""
+    business = await session.get(Business, business_id)
+    if business is None:
+        return
+    plan = plan_for(business.plan)
+    limit = plan.limits.get(metric)
+    if not limit or not (before < limit * NUDGE_AT <= after):
+        return
+    from projectx.spine.notifications.service import notify
+
+    nxt = next((PLANS[k] for k in PLAN_ORDER[PLAN_ORDER.index(plan.key) + 1 :]), None)
+    label = metric.replace("_", " ")
+    await notify(
+        session,
+        business_id,
+        kind="billing.usage_nudge",
+        level="warning",
+        title=f"You've used {after} of {limit} {label} this month",
+        body=f"{nxt.name} raises the limit." if nxt else "Limits reset at the start of next month.",
+        link="/settings?tab=plan",
+    )

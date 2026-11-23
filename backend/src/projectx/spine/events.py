@@ -88,4 +88,23 @@ register_event("spine.decision.expired", "A decision expired unanswered", Decisi
 register_event("spine.autonomy.changed", "An action type moved up or down a level", AutonomyChanged)
 register_event("spine.policy.updated", "The founder changed policy settings", PolicyUpdated)
 register_event("spine.conditions.changed", "The change detector raised or cleared an alert", ConditionsChanged)
+
+
+class BillingChanged(EventData):
+    plan: str
+    status: str
+    provider: str
+    previous_plan: str | None = None
+
+
+class UsageReported(EventData):
+    metric: str
+    amount_minor: int
+    currency: str
+    period: str
+    charged: bool
+
+
+register_event("spine.billing.changed", "The plan or subscription status changed", BillingChanged)
+register_event("spine.billing.usage", "Metered usage (like the ad-spend share) was reported", UsageReported)
 register_event("spine.credential.changed", "A credential was stored, rotated or removed", CredentialChanged)

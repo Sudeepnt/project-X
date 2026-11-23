@@ -67,6 +67,15 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-23 — Billing (M4) with Dodo Payments: hosted checkout for new subscriptions, in-place prorated
+  plan changes, cancel at period end (and undo), customer portal. The plan changes only from verified
+  Standard Webhooks, each recorded once (`billing_events`, migration 0003), applied in the tenant's own
+  transaction. Payment trouble → past_due + alert; expiry → Free. Scale's 7% ad-spend share reported monthly
+  as metered usage (USD only; other currencies flagged for a manual invoice, never silently converted).
+  Plan limits are now actually enforced everywhere (they weren't): platforms, contacts (incl. import),
+  landing pages, seats, posts and emails per month, with live counts and an 80% heads-up. Ads need Scale.
+  Cockpit: Plan tab checkout/manage/cancel, "See plans" on any limit error. 91 backend + 12 web tests.
+
 - 2026-11-23 — Ads engine (M4): Meta Marketing API (campaign → ad set → creative → ad, built paused and
   switched on last), Google Ads REST (link an existing campaign; budget, status, metrics; OAuth refresh),
   practice simulator. Caps in two places: our monthly cap checked at proposal *and* execution time, mirrored

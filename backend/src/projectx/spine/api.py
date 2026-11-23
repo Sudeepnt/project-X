@@ -14,7 +14,7 @@ from sqlalchemy import func, select
 from projectx.api.deps import BusinessDep, EditorDep, OwnerDep
 from projectx.kernel.errors import NotFound, ValidationFailed
 from projectx.kernel.pagination import clamp_limit, decode_cursor, encode_cursor
-from projectx.spine.billing.plans import PLAN_ORDER, PLANS, plan_for, usage
+from projectx.spine.billing.plans import PLAN_ORDER, PLANS, STOCK_METRICS, current_counts, plan_for, usage
 from projectx.spine.decisions import service as decisions
 from projectx.spine.decisions.models import Decision
 from projectx.spine.gateway.models import ModelCall
@@ -340,8 +340,14 @@ async def set_autonomy(action_type: str, body: LevelIn, ctx: OwnerDep) -> dict[s
 @router.get("/usage")
 async def usage_overview(ctx: BusinessDep) -> dict[str, Any]:
     plan = plan_for(ctx.business.plan)
+    live = await current_counts(ctx.session, ctx.business_id)
     metrics = {
-        metric: {"used": await usage(ctx.session, ctx.business_id, metric), "limit": limit}
+        metric: {
+            "used": live.get(metric, 0)
+            if metric in STOCK_METRICS
+            else await usage(ctx.session, ctx.business_id, metric),
+            "limit": limit,
+        }
         for metric, limit in plan.limits.items()
         if metric != "ai_daily_cents"
     }

@@ -24,6 +24,7 @@ from projectx.spine.twin.models import Contact
 
 if TYPE_CHECKING:
     from projectx.services import Services
+from projectx.spine.billing.plans import add_usage, remaining
 
 
 @periodic("gtm.schedule_sequences", every=timedelta(minutes=5))
@@ -145,6 +146,9 @@ async def send_message(ctx: JobContext) -> dict[str, Any] | None:
         if contact is None or business is None or not await has_consent(session, contact, message.channel):
             message.status, message.error = "suppressed", "no consent at send time"
             return {"suppressed": True}
+        if message.channel == "email" and await remaining(session, business, "emails_per_month") == 0:
+            message.status, message.error = "suppressed", "monthly email limit reached on the plan"
+            return {"suppressed": "plan limit"}
         to_email, channel = contact.email, message.channel
         subject, html, text = message.subject or "", message.body_html or "", message.body_text
         reply_to = (business.settings or {}).get("reply_to_email")
@@ -161,6 +165,8 @@ async def send_message(ctx: JobContext) -> dict[str, Any] | None:
         message = await session.get(Message, message_id)
         assert message is not None
         message.status, message.provider_id, message.sent_at = "sent", provider_id, utcnow()
+        if channel == "email":
+            await add_usage(session, business_id, "emails_per_month")
         await append(
             session,
             business_id=business_id,

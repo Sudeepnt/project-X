@@ -1,7 +1,7 @@
 import { type QueryKey, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { api, errorMessage } from "./api";
+import { ApiError, api, errorMessage } from "./api";
 import type { Me } from "./types";
 
 /** Read any endpoint with caching, background refresh and retries handled by React Query. */
@@ -33,7 +33,19 @@ export function useAction<TVars = void, TResult = unknown>(
       if (message) toast.success(message);
       options?.onSuccess?.(result);
     },
-    onError: (error) => toast.error(errorMessage(error)),
+    onError: (error) => {
+      // Plan limits (HTTP 402) come with a way forward, not just a "no".
+      if (error instanceof ApiError && error.status === 402) {
+        const bid = window.location.pathname.match(/^\/b\/([^/]+)/)?.[1];
+        toast.error(errorMessage(error), {
+          action: bid
+            ? { label: "See plans", onClick: () => window.location.assign(`/b/${bid}/settings?tab=plan`) }
+            : undefined,
+        });
+        return;
+      }
+      toast.error(errorMessage(error));
+    },
   });
 }
 

@@ -111,6 +111,10 @@ class Settings(BaseSettings):
     dodo_api_key: SecretStr | None = None
     dodo_webhook_secret: SecretStr | None = None
     dodo_environment: Literal["test_mode", "live_mode"] = "test_mode"
+    # Dodo product id per paid plan, e.g. PX_DODO_PRODUCT_IDS='{"autopilot":"pdt_…","growth":"pdt_…","scale":"pdt_…"}'
+    dodo_product_ids: dict[str, str] = {}
+    # Usage meter event name for Scale's share of ad spend (charged in USD; other currencies are flagged).
+    dodo_ad_share_event: str = "ad_spend_share"
 
     @property
     def is_dev(self) -> bool:

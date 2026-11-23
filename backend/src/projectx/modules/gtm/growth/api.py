@@ -14,6 +14,7 @@ from projectx.kernel.errors import Conflict, NotFound, ValidationFailed
 from projectx.modules.gtm.growth.landing import TEMPLATES, create_page, page_view, publish_page
 from projectx.modules.gtm.growth.links import create_link, link_view
 from projectx.modules.gtm.models import LandingPage, LandingVariant, PromoCode, TrackedLink
+from projectx.spine.billing.plans import check_quota
 
 router = APIRouter(prefix="/api/v1/b/{business_id}/gtm", tags=["gtm: growth"])
 
@@ -109,6 +110,7 @@ async def landing_pages(ctx: BusinessDep) -> dict[str, Any]:
 
 @router.post("/landing-pages", status_code=status.HTTP_201_CREATED)
 async def new_landing_page(body: PageIn, ctx: EditorDep) -> dict[str, Any]:
+    await check_quota(ctx.session, ctx.business, "landing_pages")
     page = await create_page(
         ctx.session,
         ctx.business,

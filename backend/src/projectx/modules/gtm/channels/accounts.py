@@ -30,7 +30,7 @@ from projectx.modules.gtm.models import ChannelAccount
 from projectx.modules.gtm.platforms import PLATFORMS
 from projectx.services import Services
 from projectx.settings import Settings
-from projectx.spine.billing.plans import plan_for
+from projectx.spine.billing.plans import check_quota
 from projectx.spine.jobs.registry import periodic
 from projectx.spine.ledger.service import Actor, append
 from projectx.spine.routing.models import RoutingKey
@@ -166,28 +166,19 @@ def redirect_uri(s: Settings, platform: str) -> str:
     return f"{s.base_url}/oauth/{platform}/callback"
 
 
-async def check_account_limit(session: AsyncSession, business: Business) -> None:
-    limit = plan_for(business.plan).limits.get("platforms")
-    if limit is None:
-        return
-    count = len(
-        set(
-            (
-                await session.execute(
-                    select(ChannelAccount.platform).where(
-                        ChannelAccount.business_id == business.id, ChannelAccount.status.in_(("connected", "practice"))
-                    )
-                )
-            ).scalars()
+async def check_account_limit(session: AsyncSession, business: Business, platform: str) -> None:
+    """Plans limit how many platforms you use, not how many accounts on a platform you already use."""
+    already = await session.scalar(
+        select(ChannelAccount.id)
+        .where(
+            ChannelAccount.business_id == business.id,
+            ChannelAccount.platform == platform,
+            ChannelAccount.status.in_(("connected", "practice", "expired")),
         )
+        .limit(1)
     )
-    if count >= limit:
-        from projectx.kernel.errors import QuotaExceeded
-
-        raise QuotaExceeded(
-            f"Your plan includes {limit} channel{'s' if limit != 1 else ''}. Upgrade to add more.",
-            extra={"metric": "platforms", "limit": limit},
-        )
+    if already is None:
+        await check_quota(session, business, "platforms")
 
 
 async def save_account(
@@ -212,7 +203,7 @@ async def save_account(
         )
     )
     if account is None:
-        await check_account_limit(session, business)
+        await check_account_limit(session, business, platform)
         account = ChannelAccount(
             business_id=business.id, platform=platform, external_id=info.external_id, name=info.name, settings={}
         )
