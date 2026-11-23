@@ -23,18 +23,23 @@ for _name in (
     "projectx.modules.gtm.channels.publisher",
     "projectx.modules.gtm.channels.accounts",
     "projectx.modules.gtm.analytics.report",
+    "projectx.modules.gtm.inbox.service",
 ):
     importlib.import_module(_name)
 
 from projectx.modules.gtm import cycles  # noqa: E402
 from projectx.modules.gtm.analytics.api import public_router as analytics_public_router  # noqa: E402
 from projectx.modules.gtm.analytics.api import router as analytics_router  # noqa: E402
+from projectx.modules.gtm.compliance.api import public_router as compliance_public_router  # noqa: E402
+from projectx.modules.gtm.compliance.api import router as compliance_router  # noqa: E402
 from projectx.modules.gtm.crm.api import router as crm_router  # noqa: E402
 from projectx.modules.gtm.crm.webhooks import public_router as payments_public_router  # noqa: E402
 from projectx.modules.gtm.crm.webhooks import router as payments_router  # noqa: E402
 from projectx.modules.gtm.defaults import seed_defaults  # noqa: E402
 from projectx.modules.gtm.growth.api import router as growth_router  # noqa: E402
 from projectx.modules.gtm.growth.public import router as growth_public_router  # noqa: E402
+from projectx.modules.gtm.inbox.api import public_router as inbox_public_router  # noqa: E402
+from projectx.modules.gtm.inbox.api import router as inbox_router  # noqa: E402
 from projectx.modules.gtm.nurture.api import router as nurture_router  # noqa: E402
 from projectx.modules.gtm.publishing_api import public_router as publishing_public_router  # noqa: E402
 from projectx.modules.gtm.publishing_api import router as publishing_router  # noqa: E402
@@ -63,12 +68,16 @@ MODULE = register_module(
             publishing_router,
             nurture_router,
             analytics_router,
+            inbox_router,
+            compliance_router,
         ],
         public_routers=[
             growth_public_router,
             payments_public_router,
             publishing_public_router,
             analytics_public_router,
+            inbox_public_router,
+            compliance_public_router,
         ],
         on_business_created=seed_defaults,
         daily_cycle=cycles.daily_cycle,

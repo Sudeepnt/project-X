@@ -1,0 +1,9 @@
+{% extends "public/base.html" %}
+{% block title %}Terms · {{ business.name }}{% endblock %}
+{% block content %}
+<main style="max-width:720px">
+  <h1>Terms of use</h1>
+  <p class="fine" style="text-align:left">Last updated {{ updated }}. Template provided by Project X — have a lawyer review it before relying on it.</p>
+  <p>By using {{ business.name }}'s website, newsletter or community you agree to use them lawfully and respectfully. Content is provided for information and may change. We may remove content or access that breaks these terms. Where a paid service is offered, its own terms apply. These terms are governed by the laws of the country where {{ business.name }} is registered.</p>
+</main>
+{% endblock %}

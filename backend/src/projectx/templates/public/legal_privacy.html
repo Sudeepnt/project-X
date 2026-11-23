@@ -1,0 +1,18 @@
+{% extends "public/base.html" %}
+{% block title %}Privacy policy · {{ business.name }}{% endblock %}
+{% block content %}
+<main style="max-width:720px">
+  <h1>Privacy policy</h1>
+  <p class="fine" style="text-align:left">Last updated {{ updated }}. Template provided by Project X — have a lawyer review it for your country before relying on it.</p>
+  <h2>What we collect</h2>
+  <p>When you sign up, we collect your email address and, if you give it, your name. When you interact with our posts or links we record which content you engaged with. We do not store IP addresses; we keep a short-lived, salted visitor fingerprint to count visits without identifying you.</p>
+  <h2>Why</h2>
+  <p>To send you what you asked for, to understand which content is useful, and to improve it. We send marketing email only if you opted in, and every email has a one-click unsubscribe link.</p>
+  <h2>Who we share it with</h2>
+  <p>Service providers that help us operate (email delivery, hosting, payments), bound by contracts. We never sell personal data.</p>
+  <h2>Your rights</h2>
+  <p>You can ask for a copy of your data, ask us to correct or delete it, or withdraw consent at any time{% if contact %} by writing to <a href="mailto:{{ contact }}">{{ contact }}</a>{% endif %}. See <a href="/legal/{{ business.slug }}/data-deletion">how to delete your data</a>.</p>
+  <h2>AI</h2>
+  <p>Some of our content is drafted with AI and reviewed under our editorial rules. Automated replies, where used, are labelled.</p>
+</main>
+{% endblock %}

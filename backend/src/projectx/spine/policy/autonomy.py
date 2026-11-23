@@ -12,6 +12,7 @@ import uuid
 from typing import Literal
 
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from projectx.kernel.time import utcnow
@@ -24,13 +25,10 @@ Outcome = Literal["clean", "edited", "rejected", "reversed", "failed"]
 
 
 async def get_state(session: AsyncSession, business_id: uuid.UUID, action: ActionType) -> AutonomyState:
-    state = await session.scalar(
-        select(AutonomyState)
-        .where(AutonomyState.business_id == business_id, AutonomyState.action_type == action.key)
-        .with_for_update()
-    )
-    if state is None:
-        state = AutonomyState(
+    """Fetch (creating if missing) and lock the row. The insert is atomic, so concurrent jobs never collide."""
+    await session.execute(
+        insert(AutonomyState)
+        .values(
             business_id=business_id,
             action_type=action.key,
             level=int(action.default_level),
@@ -41,8 +39,16 @@ async def get_state(session: AsyncSession, business_id: uuid.UUID, action: Actio
             total_reversals=0,
             promotion_pending=False,
         )
-        session.add(state)
-        await session.flush()
+        .on_conflict_do_nothing(index_elements=[AutonomyState.business_id, AutonomyState.action_type])
+    )
+    state = (
+        await session.execute(
+            select(AutonomyState)
+            .where(AutonomyState.business_id == business_id, AutonomyState.action_type == action.key)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one()
     return state
 
 

@@ -1,0 +1,19 @@
+{% extends "public/base.html" %}
+{% block title %}Media kit · {{ business.name }}{% endblock %}
+{% block meta %}<meta name="description" content="Advertise with {{ business.name }}: audience, reach and engagement.">{% endblock %}
+{% block content %}
+<main>
+  <h1>Advertise with {{ business.name }}</h1>
+  {% if kit.summary %}<p class="lede">{{ kit.summary }}</p>{% endif %}
+  {% if kit.audience %}<p><strong>Audience:</strong> {{ kit.audience }}</p>{% endif %}
+  <section style="display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin:24px 0">
+    <article class="card"><div class="fine" style="text-align:left">Newsletter subscribers</div><div style="font-size:36px;font-weight:700">{{ "{:,}".format(kit.newsletter_subscribers) }}</div></article>
+    <article class="card"><div class="fine" style="text-align:left">Monthly reach</div><div style="font-size:36px;font-weight:700">{{ "{:,}".format(kit.monthly_reach) }}</div></article>
+    {% if kit.engagement_rate %}<article class="card"><div class="fine" style="text-align:left">Engagement rate</div><div style="font-size:36px;font-weight:700">{{ "%.1f"|format(kit.engagement_rate * 100) }}%</div></article>{% endif %}
+  </section>
+  {% if kit.channels %}
+  <ul class="points">{% for c in kit.channels %}<li>{{ c.platform|capitalize }} — {{ c.name }}{% if c.followers %}: {{ "{:,}".format(c.followers) }} followers{% endif %}</li>{% endfor %}</ul>
+  {% endif %}
+  <p class="fine" style="text-align:left">Numbers read from our records on {{ kit.as_of }}.</p>
+</main>
+{% endblock %}

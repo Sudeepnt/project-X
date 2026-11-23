@@ -1,0 +1,10 @@
+{% extends "public/base.html" %}
+{% block title %}Delete your data · {{ business.name }}{% endblock %}
+{% block content %}
+<main style="max-width:720px">
+  <h1>Delete your data</h1>
+  <p class="lede">You can ask {{ business.name }} to delete everything it holds about you.</p>
+  <p>Email {% if contact %}<a href="mailto:{{ contact }}">{{ contact }}</a>{% else %}us{% endif %} from the address you signed up with and ask for deletion. We erase your personal data within 30 days and confirm by email. If you connected through Facebook or Instagram, removing our app in your account settings also sends us a deletion request automatically.</p>
+  <p>Unsubscribing from email is instant: use the link at the bottom of any email.</p>
+</main>
+{% endblock %}
