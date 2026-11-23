@@ -19,7 +19,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from projectx.kernel.time import zone
+from projectx.kernel.time import utcnow, zone
 from projectx.modules.gtm.config import gtm_settings
 from projectx.modules.gtm.content.calendar import upcoming
 from projectx.modules.gtm.content.hooks import DEFAULT_HOOKS
@@ -29,6 +29,9 @@ from projectx.modules.gtm.platforms import format_for
 from projectx.spine.tenancy.models import Business
 
 ASK_PILLARS = ("offer", "proof")
+
+
+MIN_LEAD = timedelta(hours=1)
 
 
 @dataclass
@@ -143,6 +146,8 @@ async def plan_slots(
     )
 
     slots: list[Slot] = []
+    # The founder needs time to review: never plan a slot that starts within the next hour.
+    earliest = utcnow() + MIN_LEAD
     frequency = {
         p: float(f) for p, f in (campaign.frequency or {}).items() if p in campaign.channels or not campaign.channels
     }
@@ -182,6 +187,8 @@ async def plan_slots(
             hook = gaussian_pick(list(DEFAULT_HOOKS), hook_stats, rng)
             hour = hours[j % len(hours)]
             when = datetime(day.year, day.month, day.day, int(hour), 0, tzinfo=tz).astimezone(UTC)
+            if when < earliest:
+                continue
             slots.append(
                 Slot(
                     when=when,

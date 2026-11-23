@@ -6,6 +6,7 @@ import uuid
 from datetime import date, timedelta
 from typing import Any
 
+import pytest
 from sqlalchemy import select
 
 from projectx.modules.gtm.brand.check import brand_check, claims_check, find_claims
@@ -187,3 +188,30 @@ async def test_campaign_recommendation_start_and_planning(
     assert "value" in intents
     pages = (await founder.get(gtm(business, "/landing-pages"))).json()["items"]
     assert any(p["campaign_id"] == campaign["id"] and p["kind"] == "newsletter" for p in pages)
+
+
+async def test_planner_never_schedules_inside_the_review_window(
+    services: Services, founder: Any, business: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Late in the evening, today's posting hours have passed: nothing may be planned in the past."""
+    from datetime import UTC, datetime, timedelta
+
+    from projectx.modules.gtm.content import planner
+    from projectx.modules.gtm.models import Campaign
+    from projectx.spine.tenancy.models import Business
+
+    campaign = (
+        await founder.post(
+            gtm(business, "/campaigns"), json={"playbook_key": "newsletter_growth", "channels": ["instagram", "x"]}
+        )
+    ).json()
+    bid = uuid.UUID(business["id"])
+    late = datetime.now(UTC).replace(hour=22, minute=30, second=0, microsecond=0)
+    monkeypatch.setattr(planner, "utcnow", lambda: late)
+    async with services.db.tenant(bid) as s:
+        biz = await s.get(Business, bid)
+        camp = await s.get(Campaign, uuid.UUID(campaign["id"]))
+        assert biz is not None and camp is not None
+        slots = await planner.plan_slots(s, biz, camp, start_day=late.date(), days=3)
+    assert slots, "later days still get content"
+    assert all(slot.when >= late + timedelta(hours=1) for slot in slots)
