@@ -1,0 +1,538 @@
+# The campaign library. Each campaign is a playbook: when to pick it, what it needs, channels,
+# content mix, posting frequency (posts per week), the value-to-ask ratio, metrics, budget split,
+# stop rules and the steps it runs. "runs": ai = fully on its own; ai_human = AI prepares, a person
+# does the final step; human = mostly a person. "tier" is the cheapest plan that includes it.
+# Machine conditions ("when") let the selector rank playbooks for a business; the human-readable
+# "choose_when" explains the choice to the owner.
+version: 1
+playbooks:
+  # ------------------------------------------------------------------ awareness
+  - key: always_on_organic
+    name: Always-on organic social
+    category: awareness
+    goals: [awareness, demand]
+    choose_when: A new brand that nobody knows yet
+    when: {max_followers: 5000}
+    strategies: [Content themes, Jab-jab-jab-right-hook ratio, Native format per platform, Riding trends]
+    runs: ai
+    tier: autopilot
+    channels: [instagram, tiktok, youtube, linkedin, x, threads]
+    content_mix: {short_video: 0.4, carousel: 0.25, image: 0.15, text: 0.2}
+    frequency: {instagram: 5, tiktok: 7, youtube: 3, linkedin: 4, x: 14, threads: 7}
+    value_ratio: 5
+    metrics: [reach, followers, engagement_rate]
+    stop_rules: [{kind: low_engagement, below: 0.005, after_days: 21, action: switch_creative}]
+    steps: [Pick four to six themes from the brand book, Plan a weekly calendar with the value-to-ask ratio, Write one core idea per slot and adapt it natively per platform, Publish on the best hours and reply to comments, Shift volume to the themes and hooks that win]
+  - key: launch
+    name: Launch
+    category: awareness
+    goals: [awareness, demand, sales]
+    choose_when: Something new to announce
+    when: {launching: true}
+    strategies: [Teaser, Reveal, Launch day, Recap, Waitlist, Product Hunt, Early-bird offer]
+    runs: ai_human
+    tier: growth
+    channels: [instagram, x, linkedin, newsletter, tiktok]
+    content_mix: {short_video: 0.35, image: 0.25, text: 0.25, email: 0.15}
+    frequency: {instagram: 7, x: 21, linkedin: 5, newsletter: 3, tiktok: 7}
+    value_ratio: 2
+    metrics: [reach, new_subscribers, new_customers]
+    page_kind: waitlist
+    steps: [Teaser week with behind-the-scenes, Reveal with the one-line promise, Launch day across every channel with the early-bird offer, Recap with numbers and thanks]
+  - key: viral_challenge
+    name: Viral, meme or challenge
+    category: awareness
+    goals: [awareness]
+    choose_when: Young audience, low budget
+    when: {business_models: [media, creator, ecommerce]}
+    strategies: [Riding trends, Meme templates, Hashtag challenges, Formats people can remix]
+    runs: ai
+    tier: autopilot
+    channels: [tiktok, instagram, x, threads]
+    content_mix: {short_video: 0.6, image: 0.3, text: 0.1}
+    frequency: {tiktok: 10, instagram: 7, x: 14, threads: 7}
+    value_ratio: 6
+    metrics: [reach, followers, engagement_rate]
+    steps: [Watch trending formats daily, Adapt the best two to the brand voice, Post fast while the trend is rising, Invite remixes with a simple prompt]
+  - key: influencer_creator
+    name: Influencer and creator
+    category: awareness
+    goals: [awareness, demand]
+    choose_when: You need trust and reach in a niche fast
+    when: {}
+    strategies: [Small creators, Affiliate codes, Gifted collaborations, Paying to reuse customers' content]
+    runs: ai_human
+    tier: scale
+    channels: [instagram, tiktok, youtube]
+    content_mix: {short_video: 0.7, image: 0.3}
+    frequency: {instagram: 3, tiktok: 3, youtube: 1}
+    value_ratio: 3
+    metrics: [reach, new_leads, new_customers]
+    budget_split: {creators: 0.8, boosting: 0.2}
+    steps: [Shortlist 20 small creators whose audience matches, Draft personal outreach for approval, Ship a brief and a tracked code to each, Repost the best content with permission]
+  - key: guerrilla
+    name: Guerrilla
+    category: awareness
+    goals: [awareness]
+    choose_when: Local or campus audience, and you need buzz cheaply
+    when: {local: true}
+    strategies: [Stunts, Posters with QR codes, Campus activations, Pop-ups]
+    runs: ai_human
+    tier: growth
+    channels: [instagram, tiktok]
+    content_mix: {short_video: 0.6, image: 0.4}
+    frequency: {instagram: 4, tiktok: 4}
+    value_ratio: 4
+    metrics: [reach, new_subscribers]
+    page_kind: newsletter
+    steps: [Design a printable poster with a tracked QR code, Pick high-traffic spots and a date, Film the activation, Post the recap with the QR landing page]
+  - key: event_presence
+    name: Event presence
+    category: awareness
+    goals: [awareness, demand]
+    choose_when: Your audience gathers in one place
+    when: {}
+    strategies: [Booth, QR flyers that lead to a landing page, Live coverage, Speaking slot]
+    runs: ai_human
+    tier: growth
+    channels: [linkedin, x, instagram]
+    content_mix: {image: 0.4, short_video: 0.3, text: 0.3}
+    frequency: {linkedin: 5, x: 14, instagram: 5}
+    value_ratio: 3
+    metrics: [reach, new_leads]
+    page_kind: lead_magnet
+    steps: [Announce you'll be there, Prepare QR flyers to a landing page, Cover the event live, Follow up with every scanned lead within 48 hours]
+  - key: pr_press
+    name: PR and press
+    category: awareness
+    goals: [awareness, reputation]
+    choose_when: You have real news or data
+    when: {}
+    strategies: [Press release, Pitches to journalists, Data stories, Podcasts, Awards]
+    runs: ai_human
+    tier: scale
+    channels: [linkedin, x, newsletter]
+    content_mix: {text: 0.6, image: 0.2, email: 0.2}
+    frequency: {linkedin: 3, x: 7, newsletter: 1}
+    value_ratio: 4
+    metrics: [mentions, reach]
+    steps: [Turn the news into a one-page data story, Build a short press list of journalists who cover it, Draft personal pitches for approval, Share coverage across channels]
+  - key: build_in_public
+    name: Thought leadership and build in public
+    category: awareness
+    goals: [awareness, demand]
+    choose_when: Trust-heavy offer, founder-led
+    when: {}
+    strategies: [Founder posts on LinkedIn and X, Public dashboard, Weekly lessons]
+    runs: ai_human
+    tier: growth
+    channels: [linkedin, x, newsletter]
+    content_mix: {text: 0.6, carousel: 0.2, email: 0.2}
+    frequency: {linkedin: 5, x: 14, newsletter: 1}
+    value_ratio: 5
+    metrics: [followers, new_subscribers]
+    steps: [Draft founder posts in the founder's own voice, Share the public dashboard numbers weekly, Turn every mistake into a lesson post, The founder approves each post]
+
+  # ------------------------------------------------------------------ leads
+  - key: lead_magnet
+    name: Lead magnet
+    category: leads
+    goals: [demand]
+    choose_when: Traffic, but no contacts captured
+    when: {min_followers: 300}
+    strategies: [Free guide, template or tool, Landing page, Nurture]
+    runs: ai
+    tier: growth
+    channels: [instagram, linkedin, x, newsletter]
+    content_mix: {carousel: 0.35, short_video: 0.25, text: 0.25, email: 0.15}
+    frequency: {instagram: 4, linkedin: 4, x: 10, newsletter: 1}
+    value_ratio: 3
+    metrics: [new_leads, cost_per_lead]
+    page_kind: lead_magnet
+    sequence: welcome
+    steps: [Pick the one problem your audience asks about most, Create the guide or template from the brand book, Publish a landing page with consent, Promote it with native posts that each solve part of the problem, Nurture every download]
+  - key: newsletter_growth
+    name: Newsletter growth
+    category: leads
+    goals: [demand, awareness]
+    choose_when: A media or content business
+    when: {business_models: [media, creator]}
+    strategies: [Signup prompt everywhere, Referral milestone rewards, Swapping shout-outs with other newsletters]
+    runs: ai
+    tier: growth
+    channels: [newsletter, instagram, x, telegram, threads, tiktok]
+    content_mix: {short_video: 0.3, image: 0.2, text: 0.3, email: 0.2}
+    frequency: {newsletter: 7, instagram: 5, x: 14, telegram: 7, threads: 7, tiktok: 7}
+    value_ratio: 4
+    metrics: [new_subscribers, referrals]
+    page_kind: newsletter
+    sequence: welcome
+    steps: [Put the signup link on every post and profile, Reward subscribers at referral milestones, Swap shout-outs with complementary newsletters, Send the daily digest on time every day]
+  - key: seo_ai_search
+    name: SEO and AI search
+    category: leads
+    goals: [demand, awareness]
+    choose_when: People search for your topic
+    when: {}
+    strategies: [Keyword clusters, Auto-generated pages, Answer-style content that AI assistants quote]
+    runs: ai
+    tier: growth
+    channels: [blog]
+    content_mix: {article: 1.0}
+    frequency: {blog: 3}
+    value_ratio: 8
+    metrics: [new_leads, reach]
+    steps: [Map the questions your audience types, Write answer-first articles per question cluster, Link every article to a relevant lead magnet, Refresh the pages that start ranking]
+  - key: webinar_live
+    name: Webinar or live session
+    category: leads
+    goals: [demand, sales]
+    choose_when: A complex offer, or education
+    when: {}
+    strategies: [Register, Reminders, Live, Replay, Offer]
+    runs: ai_human
+    tier: growth
+    channels: [linkedin, instagram, newsletter, youtube]
+    content_mix: {text: 0.3, short_video: 0.3, email: 0.4}
+    frequency: {linkedin: 3, instagram: 3, newsletter: 2, youtube: 1}
+    value_ratio: 2
+    metrics: [new_leads, new_customers]
+    page_kind: webinar
+    steps: [Pick a topic that sells the offer by teaching, Open registration with a landing page, Send reminders 1 day and 1 hour before, Host live, then send the replay with the offer]
+  - key: contest_giveaway
+    name: Contest or giveaway
+    category: leads
+    goals: [demand]
+    choose_when: You need fast list growth
+    when: {business_models: [media, creator, ecommerce]}
+    strategies: [Entry needs an email and a share, Bonus entries for referrals, Prize from a partner]
+    runs: ai
+    tier: growth
+    channels: [instagram, tiktok, x, newsletter]
+    content_mix: {short_video: 0.4, image: 0.4, email: 0.2}
+    frequency: {instagram: 5, tiktok: 5, x: 10, newsletter: 1}
+    value_ratio: 2
+    metrics: [new_subscribers, referrals]
+    page_kind: newsletter
+    steps: [Pick a prize your ideal subscriber wants, Publish rules that follow each platform's promotion terms, Collect entries on a landing page with consent, Announce the winner publicly]
+  - key: paid_lead_ads
+    name: Paid lead ads
+    category: leads
+    goals: [demand, sales]
+    choose_when: You have budget and need volume fast
+    when: {needs_budget: true}
+    strategies: [Meta lead forms, Google ads on buying-intent keywords, Audiences that look like your best customers]
+    runs: ai
+    tier: scale
+    channels: [meta_ads, google_ads]
+    content_mix: {ad_creative: 1.0}
+    frequency: {}
+    value_ratio: 1
+    metrics: [new_leads, cost_per_lead]
+    budget_split: {meta: 0.6, google: 0.4}
+    page_kind: lead_magnet
+    stop_rules: [{kind: cpl_over_target, multiple: 2.0, days: 3, action: pause_ad}]
+    steps: [Retarget past visitors first, Then audiences like your best customers, Then cold audiences, Run three to five creatives per ad set and switch off the losers by rule]
+  - key: cold_outreach
+    name: Cold outreach
+    category: leads
+    goals: [demand, sales, partnerships]
+    choose_when: Selling to businesses, with named targets
+    when: {b2b: true}
+    strategies: [Target list, Enrich contacts, Three to five personal messages, Value first]
+    runs: ai
+    tier: scale
+    channels: [email, linkedin]
+    content_mix: {email: 1.0}
+    frequency: {email: 25}
+    value_ratio: 2
+    metrics: [new_leads, new_customers]
+    steps: [Build a target list from the customer profile, Research each target for one specific reason to write, Draft three to five short value-first messages, Stop at the first reply or no]
+  - key: community_led
+    name: Community-led
+    category: leads
+    goals: [demand, retention, awareness]
+    choose_when: Your audience wants to talk to each other
+    when: {}
+    strategies: [Discord, WhatsApp or Telegram, Weekly events, Q&A sessions, Ambassadors]
+    runs: ai_human
+    tier: growth
+    channels: [discord, telegram, whatsapp]
+    content_mix: {text: 0.7, image: 0.3}
+    frequency: {discord: 7, telegram: 7}
+    value_ratio: 8
+    metrics: [new_subscribers, referrals]
+    steps: [Open the community with clear channels and rules, Welcome every new member with two onboarding questions, Post a daily discussion question, Run a weekly event and promote active members to ambassadors]
+
+  # ------------------------------------------------------------------ sales
+  - key: nurture_to_convert
+    name: Nurture to convert
+    category: sales
+    goals: [sales]
+    choose_when: Many leads, few buyers
+    when: {min_leads: 50}
+    strategies: [Email and WhatsApp sequences, Case studies, Content that answers objections, Call booking]
+    runs: ai
+    tier: growth
+    channels: [email, whatsapp, linkedin]
+    content_mix: {email: 0.7, text: 0.3}
+    frequency: {email: 3}
+    value_ratio: 2
+    metrics: [new_customers, revenue]
+    sequence: nurture_to_convert
+    steps: [Segment leads by what they engaged with, Answer the top objections one email at a time, Share a case study with numbers, Offer a call to the most engaged]
+  - key: offer_promotion
+    name: Offer or promotion
+    category: sales
+    goals: [sales]
+    choose_when: You need a revenue spike, or it's a seasonal moment
+    when: {}
+    strategies: [Limited-time offers, Bundles, Holiday calendar]
+    runs: ai
+    tier: growth
+    channels: [instagram, newsletter, x, whatsapp]
+    content_mix: {image: 0.35, short_video: 0.25, email: 0.4}
+    frequency: {instagram: 5, newsletter: 3, x: 10}
+    value_ratio: 1
+    metrics: [new_customers, revenue]
+    approval_note: The owner approves every discount.
+    steps: [Pick the moment from the holiday calendar, Design the offer and promo code for approval, Announce, remind and close with a real deadline, Report revenue by promo code]
+  - key: retargeting
+    name: Retargeting
+    category: sales
+    goals: [sales, demand]
+    choose_when: Visitors who didn't take action
+    when: {needs_budget: true}
+    strategies: [Ads to past visitors in order, Proof, Offer, Deadline]
+    runs: ai
+    tier: scale
+    channels: [meta_ads, google_ads]
+    content_mix: {ad_creative: 1.0}
+    frequency: {}
+    value_ratio: 1
+    metrics: [new_customers, cost_per_lead]
+    budget_split: {meta: 0.7, google: 0.3}
+    steps: [Build audiences from tracked visitors, Show proof first, then the offer, then the deadline, Cap frequency so people aren't annoyed]
+  - key: key_accounts
+    name: Targeted sales to key accounts
+    category: sales
+    goals: [sales, partnerships]
+    choose_when: A few high-value buyers, like Bought's advertisers
+    when: {b2b: true}
+    strategies: [Target list, Personal pitch plus media kit, Meeting booking, Proposal]
+    runs: ai_human
+    tier: growth
+    channels: [email, linkedin]
+    content_mix: {email: 1.0}
+    frequency: {email: 10}
+    value_ratio: 2
+    metrics: [new_customers, revenue]
+    pipeline: advertisers
+    steps: [List the 20 accounts that fit best, Research each and draft a personal pitch with the media kit, Book meetings, Send proposals and follow up by stage]
+  - key: free_consult
+    name: Free consult or trial
+    category: sales
+    goals: [sales]
+    choose_when: A service business where trust is the barrier
+    when: {business_models: [service, software]}
+    strategies: [Free audit or consult, Reminders, A quick first win]
+    runs: ai
+    tier: growth
+    channels: [linkedin, instagram, email]
+    content_mix: {text: 0.4, carousel: 0.3, email: 0.3}
+    frequency: {linkedin: 4, instagram: 3, email: 2}
+    value_ratio: 3
+    metrics: [new_customers, revenue]
+    page_kind: consult
+    steps: [Offer a free audit with a clear scope, Confirm and remind every booking, Deliver one quick win in the consult, Follow up with a proposal]
+
+  # ------------------------------------------------------------------ partnerships
+  - key: joint_marketing
+    name: Joint marketing with a partner
+    category: partnerships
+    goals: [partnerships, demand]
+    choose_when: Another business already has your audience
+    when: {}
+    strategies: [Content swaps, Joint webinars, Bundles, Promoting each other's newsletters]
+    runs: ai_human
+    tier: scale
+    channels: [newsletter, linkedin, instagram]
+    content_mix: {email: 0.4, text: 0.3, image: 0.3}
+    frequency: {newsletter: 1, linkedin: 2, instagram: 2}
+    value_ratio: 4
+    metrics: [partners_signed, new_leads]
+    pipeline: partners
+    steps: [Find businesses with the same audience and no overlap, Propose a specific swap for approval, Run it and track leads by partner link, Report results to the partner]
+  - key: affiliate_program
+    name: Affiliate program
+    category: partnerships
+    goals: [partnerships, sales]
+    choose_when: You want others to sell for a commission
+    when: {}
+    strategies: [Affiliate links, Tiered commissions, Partner dashboard]
+    runs: ai
+    tier: scale
+    channels: [email]
+    content_mix: {email: 1.0}
+    frequency: {email: 1}
+    value_ratio: 3
+    metrics: [partners_signed, revenue]
+    steps: [Set commission tiers, Give each affiliate a tracked link and promo code, Share a monthly results report, Pay commissions on confirmed revenue]
+  - key: directory_listings
+    name: Marketplace and directory listings
+    category: partnerships
+    goals: [partnerships, reputation, demand]
+    choose_when: Buyers browse lists
+    when: {}
+    strategies: [Google Business Profile, G2, App stores, Product Hunt, Collecting reviews]
+    runs: ai_human
+    tier: growth
+    channels: []
+    content_mix: {}
+    frequency: {}
+    value_ratio: 5
+    metrics: [review_rating, new_leads]
+    steps: [List where your buyers browse, Write consistent listings from the brand book, Ask happy customers for reviews, Keep listings fresh]
+  - key: sponsorship
+    name: Sponsorship
+    category: partnerships
+    goals: [partnerships, awareness]
+    choose_when: An event, newsletter or podcast has your exact audience
+    when: {needs_budget: true}
+    strategies: [Sponsor slots, Speaking, Booth]
+    runs: ai_human
+    tier: scale
+    channels: []
+    content_mix: {}
+    frequency: {}
+    value_ratio: 3
+    metrics: [new_leads, reach]
+    budget_split: {sponsorships: 1.0}
+    steps: [Shortlist sponsorships by audience fit and price per reader, Negotiate for approval, Provide a tracked link and code, Measure leads per sponsorship]
+  - key: reseller_white_label
+    name: Reseller, agency or white-label
+    category: partnerships
+    goals: [partnerships]
+    choose_when: Others can sell you at scale
+    when: {b2b: true}
+    strategies: [Agency program, White-label version, Revenue share]
+    runs: human
+    tier: scale
+    channels: [email, linkedin]
+    content_mix: {email: 1.0}
+    frequency: {email: 5}
+    value_ratio: 3
+    metrics: [partners_signed, revenue]
+    pipeline: partners
+    steps: [Define the partner offer and revenue share, Find agencies that serve your customer profile, Pitch and onboard partners, Support their first sales]
+
+  # ------------------------------------------------------------------ keep and grow customers
+  - key: onboarding
+    name: Onboarding
+    category: customer_success
+    goals: [retention]
+    choose_when: New customers
+    when: {min_customers: 1}
+    strategies: [Welcome sequence, Setup help, A quick first win]
+    runs: ai
+    tier: growth
+    channels: [email, whatsapp]
+    content_mix: {email: 1.0}
+    frequency: {email: 2}
+    value_ratio: 9
+    metrics: [churn_rate]
+    sequence: onboarding
+    steps: [Welcome every customer the same day, Help them reach one quick win, Check in after the first week]
+  - key: retention_win_back
+    name: Retention and win-back
+    category: customer_success
+    goals: [retention]
+    choose_when: Churn rising, or users inactive
+    when: {min_customers: 10}
+    strategies: [Re-engagement messages, Usage tips, Comeback offers]
+    runs: ai
+    tier: growth
+    channels: [email, whatsapp]
+    content_mix: {email: 1.0}
+    frequency: {email: 1}
+    value_ratio: 4
+    metrics: [churn_rate]
+    sequence: win_back
+    steps: [Flag customers inactive for 14 days, Send a helpful check-in, not a sale, Offer a comeback deal to those who stay silent, Record why people leave]
+  - key: upsell_cross_sell
+    name: Upsell and cross-sell
+    category: customer_success
+    goals: [retention, sales]
+    choose_when: Happy, active customers
+    when: {min_customers: 10}
+    strategies: [Offers triggered by usage, Upgrades, Add-ons, Turning one-time clients into retainers]
+    runs: ai
+    tier: growth
+    channels: [email]
+    content_mix: {email: 1.0}
+    frequency: {email: 1}
+    value_ratio: 3
+    metrics: [upsell_revenue]
+    steps: [Find customers who got results, Suggest the next step that fits their use, Offer a retainer to one-time clients who came back]
+  - key: renewal
+    name: Renewal
+    category: customer_success
+    goals: [retention]
+    choose_when: Retainers or subscriptions coming due
+    when: {min_customers: 1}
+    strategies: [Reminders, Annual discount, What you got this year recap]
+    runs: ai
+    tier: growth
+    channels: [email]
+    content_mix: {email: 1.0}
+    frequency: {email: 1}
+    value_ratio: 4
+    metrics: [upsell_revenue, churn_rate]
+    steps: [Remind 30 and 7 days before renewal, Send a recap of what they got, Offer an annual plan]
+  - key: customer_referral
+    name: Customer referral
+    category: customer_success
+    goals: [retention, demand]
+    choose_when: Customers love you
+    when: {min_customers: 10}
+    strategies: [Rewards for both sides, Leaderboards]
+    runs: ai
+    tier: growth
+    channels: [email, newsletter]
+    content_mix: {email: 1.0}
+    frequency: {email: 1}
+    value_ratio: 4
+    metrics: [referrals]
+    sequence: referral_request
+    steps: [Ask right after a win or a high satisfaction score, Give both sides a reward, Show a simple leaderboard]
+  - key: reviews_testimonials
+    name: Reviews and testimonials
+    category: customer_success
+    goals: [reputation, retention]
+    choose_when: You need social proof
+    when: {min_customers: 5}
+    strategies: [Ask right after a win, Show them everywhere, Never fake or paid]
+    runs: ai
+    tier: growth
+    channels: [email]
+    content_mix: {email: 1.0}
+    frequency: {email: 1}
+    value_ratio: 5
+    metrics: [review_rating]
+    steps: [Ask for a review right after a success, Make leaving it one click, Turn the best ones into proof posts with permission]
+  - key: reputation_repair
+    name: Reputation repair
+    category: customer_success
+    goals: [reputation]
+    choose_when: Bad reviews or bad press
+    when: {}
+    strategies: [Respond fast, Own it, Fix it, Show proof]
+    runs: ai_human
+    tier: growth
+    channels: [instagram, x, linkedin]
+    content_mix: {text: 0.6, image: 0.4}
+    frequency: {instagram: 2, x: 3, linkedin: 2}
+    value_ratio: 6
+    metrics: [review_rating, negative_share]
+    approval_note: The owner approves every response first.
+    steps: [Reply to every negative review within a day, Own the problem in plain words, Fix it and say how, Share proof of the fix]

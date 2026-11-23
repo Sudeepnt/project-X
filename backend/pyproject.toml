@@ -80,6 +80,7 @@ quote-style = "double"
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S105", "S106", "S107", "S311", "PT018", "PLR0917", "PT012"]
 "migrations/**" = ["E501"]
+"src/projectx/spine/safe_fetch.py" = ["ASYNC109"]  # httpcore backend interface takes `timeout`
 
 [tool.mypy]
 python_version = "3.13"

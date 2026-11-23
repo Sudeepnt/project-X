@@ -12,6 +12,10 @@ for _name in (
     "projectx.modules.gtm.actions",
     "projectx.modules.gtm.crm.automations",
     "projectx.modules.gtm.nurture.sender",
+    "projectx.modules.gtm.brand.service",
+    "projectx.modules.gtm.goals.service",
+    "projectx.modules.gtm.campaigns.service",
+    "projectx.modules.gtm.content.pipeline",
 ):
     importlib.import_module(_name)
 
@@ -21,13 +25,14 @@ from projectx.modules.gtm.crm.webhooks import router as payments_router  # noqa:
 from projectx.modules.gtm.defaults import seed_defaults  # noqa: E402
 from projectx.modules.gtm.growth.api import router as growth_router  # noqa: E402
 from projectx.modules.gtm.growth.public import router as growth_public_router  # noqa: E402
+from projectx.modules.gtm.strategy_api import router as strategy_router  # noqa: E402
 
 MODULE = register_module(
     Module(
         key="gtm",
         title="Go-to-market",
         description="Brand, goals, campaigns, content, publishing, CRM, nurture, analytics and learning.",
-        routers=[crm_router, growth_router, payments_router],
+        routers=[crm_router, growth_router, payments_router, strategy_router],
         public_routers=[growth_public_router, payments_public_router],
         on_business_created=seed_defaults,
     )
