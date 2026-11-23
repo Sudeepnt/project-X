@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{ title }}</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',Helvetica,Arial,sans-serif;color:#1d1d1f;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f7;padding:40px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:18px;padding:40px 36px;">
+        <tr><td style="font-size:13px;font-weight:600;letter-spacing:.02em;color:#86868b;text-transform:uppercase;padding-bottom:20px;">{{ app_name }}</td></tr>
+        <tr><td style="font-size:26px;line-height:1.2;font-weight:700;letter-spacing:-.02em;padding-bottom:16px;">{{ title }}</td></tr>
+        <tr><td style="font-size:16px;line-height:1.55;color:#424245;padding-bottom:8px;">Hi {{ name }},</td></tr>
+        <tr><td style="font-size:16px;line-height:1.55;color:#424245;padding-bottom:28px;">{{ body }}</td></tr>
+        <tr><td style="padding-bottom:28px;">
+          <a href="{{ action_url }}" style="display:inline-block;background:#0071e3;color:#ffffff;text-decoration:none;font-size:16px;font-weight:600;padding:13px 24px;border-radius:980px;">{{ action_label }}</a>
+        </td></tr>
+        <tr><td style="font-size:13px;line-height:1.5;color:#86868b;">If the button doesn't work, paste this link into your browser:<br><span style="word-break:break-all;color:#0071e3;">{{ action_url }}</span></td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>

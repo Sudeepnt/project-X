@@ -1,0 +1,99 @@
+[project]
+name = "projectx"
+version = "0.1.0"
+description = "Project X: the spine and department modules of the autonomous business platform"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "uvicorn[standard]>=0.32",
+  "sqlalchemy[asyncio]>=2.0.36,<2.1",
+  "asyncpg>=0.30",
+  "alembic>=1.14,<2",
+  "pydantic>=2.10,<3",
+  "pydantic-settings>=2.6,<3",
+  "email-validator>=2.2",
+  "structlog>=24.4",
+  "argon2-cffi>=23.1",
+  "cryptography>=44",
+  "httpx>=0.28,<1",
+  "anthropic>=1.0,<2",
+  "jinja2>=3.1",
+  "python-multipart>=0.0.18",
+  "pgvector>=0.3.6",
+  "holidays>=0.60",
+  "orjson>=3.10",
+  "pyyaml>=6.0",
+  "aiosmtplib>=3.0",
+  "selectolax>=0.3.21",
+]
+
+[project.optional-dependencies]
+bot = ["discord.py>=2.4,<3"]
+
+[project.scripts]
+projectx = "projectx.cli:main"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "hypothesis>=6.115",
+  "respx>=0.21",
+  "ruff>=0.8",
+  "mypy>=1.13",
+  "time-machine>=2.16",
+  "types-pyyaml>=6.0",
+]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/projectx"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC", "C4", "SIM", "RUF", "PT", "TID", "PL"]
+ignore = [
+  "PLR0913",  # many arguments: services take explicit keyword args on purpose
+  "PLR2004",  # magic numbers: thresholds are named where they matter
+  "PLR0911",
+  "PLR0912",
+  "PLR0915",
+  "S101",     # assert is fine in tests and for invariants
+  "RUF012",
+  "B008",     # FastAPI Depends() in defaults is the idiom
+  "PLC0415",  # local imports break import cycles between spine and modules on purpose
+  "PLW0603",  # module-level registries use a load-once flag
+  "PLR0917",  # FastAPI handlers receive query parameters positionally
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106", "S107", "S311", "PT018", "PLR0917", "PT012"]
+"migrations/**" = ["E501"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+plugins = ["pydantic.mypy"]
+warn_unreachable = true
+ignore_missing_imports = true
+exclude = ["migrations/"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = ["slow: long-running tests"]
+filterwarnings = ["error::DeprecationWarning:projectx.*"]
