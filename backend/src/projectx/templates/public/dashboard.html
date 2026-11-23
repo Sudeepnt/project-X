@@ -1,0 +1,18 @@
+{% extends "public/base.html" %}
+{% block title %}{{ business.name }} · Open numbers{% endblock %}
+{% block meta %}<meta name="description" content="{{ business.name }} publishes its numbers in public, failures included.">{% endblock %}
+{% block content %}
+<main>
+  <h1>Open numbers</h1>
+  <p class="lede">{{ business.name }} runs in public. These numbers are read straight from its records, failures included.</p>
+  <section style="display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:8px">
+    {% for t in tiles %}
+    <article class="card" aria-label="{{ t.label }}">
+      <div style="font-size:14px;color:var(--muted);margin-bottom:10px">{{ t.label }}</div>
+      <div style="font-size:40px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums">{{ t.value }}</div>
+    </article>
+    {% endfor %}
+  </section>
+  <p class="fine" style="text-align:left;margin-top:24px">Updated {{ as_of }}. Refreshes every few minutes.</p>
+</main>
+{% endblock %}

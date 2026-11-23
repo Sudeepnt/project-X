@@ -49,8 +49,8 @@ Future modules (finance, legal, people…) plug in the same way.
 
 ## Milestones
 
-- [ ] M0 Foundation: repo, tooling, CI, local Postgres 18, app skeleton, migrations
-- [ ] M1 Spine: identity + tenancy (RLS), ledger, jobs, policy + autonomy + decisions,
+- [x] M0 Foundation: repo, tooling, CI, local Postgres 18, app skeleton, migrations
+- [x] M1 Spine: identity + tenancy (RLS), ledger, jobs, policy + autonomy + decisions,
       vault, model gateway (Anthropic / OpenAI-compatible / offline), notifications, cockpit
 - [ ] M2 GTM core: brand book + ICP, CRM (stages, statuses, automations, deals),
       tracked links + attribution, landing pages + A/B, goals (diagnosis, feasibility, pacing,
@@ -66,3 +66,13 @@ Future modules (finance, legal, people…) plug in the same way.
 ## Status log
 
 (Newest first.)
+
+- 2026-11-23 — GTM backend core loop works end to end in practice mode: content pipeline (plan,
+  write, adapt, check, propose), publisher with read-back verification, 10 platform adapters +
+  simulator + Ayrshare, OAuth/token/practice accounts, newsletter digest, analytics, weekly report,
+  public dashboard, cockpit briefing. 68 tests. Next: inbox + comment webhooks, experiments API,
+  compliance (DSAR, data-deletion callback), media kit, ads engine, billing, Discord bot, seed demo,
+  then the web cockpit.
+- 2026-11-23 — Strategy layer: brand book, goals with forecasts and pacing, campaign library (33).
+- 2026-11-23 — GTM data model, CRM funnel, nurture, links, landing pages, payments.
+- 2026-11-23 — Spine: ledger, policy engine, jobs, vault, gateway, auth, tenancy (RLS).
