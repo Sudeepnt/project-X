@@ -30,6 +30,7 @@ interface Step {
   delay_hours: number;
   subject: string;
   body: string;
+  template?: { name: string; language: string; params: string[] } | null;
 }
 interface Sequence {
   id: string;
@@ -119,17 +120,39 @@ function SequenceEditor({ bid, seq }: { bid: string; seq: Sequence }) {
       </div>
       {open ? (
         <div className="space-y-4 px-5 pb-5">
-          <Field label="Name">
-            {(id) => (
-              <Input id={id} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
-            )}
-          </Field>
+          <div className="grid gap-3 sm:grid-cols-[1fr_180px]">
+            <Field label="Name">
+              {(id) => (
+                <Input id={id} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+              )}
+            </Field>
+            <Field label="Send by">
+              {(id) => (
+                <Select
+                  id={id}
+                  value={draft.channel}
+                  onChange={(e) => setDraft({ ...draft, channel: e.target.value as "email" | "whatsapp" })}
+                >
+                  <option value="email">Email</option>
+                  <option value="whatsapp">WhatsApp</option>
+                </Select>
+              )}
+            </Field>
+          </div>
+          {draft.channel === "whatsapp" ? (
+            <p className="rounded-[10px] bg-accent-soft px-3 py-2 text-[13px] text-text-2">
+              WhatsApp allows free text only within 24 hours of the person's last message. For later steps, add the name
+              of a template Meta has approved; without one, that step is skipped and the reason logged.
+            </p>
+          ) : null}
           <ol className="space-y-3">
             {draft.steps.map((s, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: steps are positional
               <li key={i} className="rounded-[14px] bg-fill-2 p-4">
                 <div className="mb-3 flex items-center gap-2">
-                  <Badge tone="accent">Email {i + 1}</Badge>
+                  <Badge tone="accent">
+                    {draft.channel === "whatsapp" ? "Message" : "Email"} {i + 1}
+                  </Badge>
                   <Select
                     aria-label="Delay"
                     className="h-8 w-auto text-[13px]"
@@ -154,13 +177,43 @@ function SequenceEditor({ bid, seq }: { bid: string; seq: Sequence }) {
                     <Trash2 className="size-4" />
                   </button>
                 </div>
-                <Input
-                  aria-label="Subject"
-                  placeholder="Subject"
-                  value={s.subject}
-                  onChange={(e) => setStep(i, { subject: e.target.value })}
-                  className="mb-2"
-                />
+                {draft.channel === "email" ? (
+                  <Input
+                    aria-label="Subject"
+                    placeholder="Subject"
+                    value={s.subject}
+                    onChange={(e) => setStep(i, { subject: e.target.value })}
+                    className="mb-2"
+                  />
+                ) : (
+                  <div className="mb-2 grid gap-2 sm:grid-cols-[1fr_100px]">
+                    <Input
+                      aria-label="Approved template name"
+                      placeholder="Approved template name (for after 24 hours)"
+                      value={s.template?.name ?? ""}
+                      onChange={(e) =>
+                        setStep(i, {
+                          template: e.target.value
+                            ? {
+                                name: e.target.value.trim().toLowerCase(),
+                                language: s.template?.language ?? "en",
+                                params: s.template?.params ?? [],
+                              }
+                            : null,
+                        })
+                      }
+                    />
+                    <Input
+                      aria-label="Template language"
+                      placeholder="en"
+                      value={s.template?.language ?? ""}
+                      disabled={!s.template}
+                      onChange={(e) =>
+                        s.template && setStep(i, { template: { ...s.template, language: e.target.value } })
+                      }
+                    />
+                  </div>
+                )}
                 <Textarea
                   aria-label="Body"
                   rows={5}

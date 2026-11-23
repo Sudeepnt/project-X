@@ -40,6 +40,10 @@ def adapter_for(account: ChannelAccount, settings: Settings) -> Adapter:
         if not settings.ayrshare_api_key:
             raise NotConfigured("Unified API (Ayrshare) is not configured")
         return AyrshareAdapter(account.platform, settings.ayrshare_api_key.get_secret_value())
+    if account.platform == "whatsapp":  # imported lazily: the WhatsApp module builds on these adapters
+        from projectx.modules.gtm.channels.whatsapp import WhatsAppAdapter
+
+        return WhatsAppAdapter()
     cls = _NATIVE.get(account.platform)
     if cls is None:
         raise NotConfigured(f"No adapter for {account.platform}")

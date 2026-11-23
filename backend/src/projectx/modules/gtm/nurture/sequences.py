@@ -181,6 +181,7 @@ async def queue_message(
     sequence_id: uuid.UUID | None = None,
     enrollment_id: uuid.UUID | None = None,
     issue_id: uuid.UUID | None = None,
+    meta: dict[str, Any] | None = None,
 ) -> Message:
     built = (
         build_email(services, business, contact, subject=subject, body=body)
@@ -199,6 +200,7 @@ async def queue_message(
         body_text=built["text"],
         body_html=built.get("html"),
         status="queued",
+        meta=meta or {},
     )
     session.add(message)
     await session.flush()

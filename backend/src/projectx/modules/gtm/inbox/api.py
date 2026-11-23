@@ -178,6 +178,8 @@ async def meta_events(request: Request) -> Response:
     ):
         return JSONResponse({"error": "bad signature"}, status_code=401)
     payload = orjson.loads(body)
+    if payload.get("object") == "whatsapp_business_account":
+        return JSONResponse({"handled": await _whatsapp_events(services, payload)})
     platform = "instagram" if payload.get("object") == "instagram" else "facebook"
     handled = 0
     for entry in payload.get("entry", []):
@@ -238,6 +240,25 @@ async def meta_events(request: Request) -> Response:
                     )
                     handled += 1
     return JSONResponse({"handled": handled})
+
+
+async def _whatsapp_events(services: Services, payload: dict[str, Any]) -> int:
+    from projectx.modules.gtm.channels.whatsapp import handle_webhook_value
+
+    handled = 0
+    for entry in payload.get("entry", []):
+        for change in entry.get("changes", []):
+            if change.get("field") != "messages":
+                continue
+            value = change.get("value", {})
+            number_id = str((value.get("metadata") or {}).get("phone_number_id", ""))
+            routed = await _route(services, "whatsapp", number_id) if number_id else None
+            if routed is None:
+                continue
+            business, account_id = routed
+            async with services.db.tenant(business.id) as session:
+                handled += await handle_webhook_value(session, business, account_id, value)
+    return handled
 
 
 @public_router.post("/webhooks/telegram/{account_id}")

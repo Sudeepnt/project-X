@@ -22,7 +22,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from projectx.kernel.errors import NotConfigured, ValidationFailed
+from projectx.kernel.errors import Conflict, NotConfigured, ValidationFailed
 from projectx.kernel.time import utcnow
 from projectx.modules.gtm.channels.adapters import adapter_for
 from projectx.modules.gtm.channels.adapters.base import AccountInfo, AdapterContext, AdapterError
@@ -36,7 +36,7 @@ from projectx.spine.ledger.service import Actor, append
 from projectx.spine.routing.models import RoutingKey
 from projectx.spine.tenancy.models import Business
 
-TOKEN_PLATFORMS = {"telegram": ("bot_token",), "discord": ("webhook_url",)}
+TOKEN_PLATFORMS = {"telegram": ("bot_token",), "discord": ("webhook_url",), "whatsapp": ("access_token",)}
 
 
 @dataclass(frozen=True)
@@ -181,6 +181,52 @@ async def check_account_limit(session: AsyncSession, business: Business, platfor
         await check_quota(session, business, "platforms")
 
 
+async def _live_elsewhere(session: AsyncSession, other: uuid.UUID, account_id: uuid.UUID | None) -> bool:
+    """Is that account still connected in its business? Row-level security hides other tenants' rows, so
+    look through that tenant's lens for one yes/no answer, then put ours back, in the same transaction."""
+    from sqlalchemy import text as sql
+
+    if account_id is None:
+        return False
+    ours = await session.scalar(sql("SELECT current_setting('app.business_id', true)"))
+    try:
+        await session.execute(sql("SELECT set_config('app.business_id', :b, true)"), {"b": str(other)})
+        live = await session.scalar(
+            select(ChannelAccount.id).where(
+                ChannelAccount.id == account_id, ChannelAccount.status.in_(("connected", "practice", "expired"))
+            )
+        )
+    finally:
+        await session.execute(sql("SELECT set_config('app.business_id', :b, true)"), {"b": ours or ""})
+    return live is not None
+
+
+async def claim_route(
+    session: AsyncSession, business: Business, platform: str, external_id: str, account_id: uuid.UUID
+) -> None:
+    """Point inbound webhooks for this platform account at this business.
+
+    One platform account belongs to one business. If another business has it connected, refuse; if that
+    connection was removed, take the route over (otherwise its comments would keep going to the old owner).
+    """
+    key = f"{platform}:{external_id}"
+    existing = await session.get(RoutingKey, ("account", key))
+    if (
+        existing is not None
+        and existing.business_id != business.id
+        and await _live_elsewhere(session, existing.business_id, existing.target_id)
+    ):
+        raise Conflict("This account is already connected to another business on Project X")
+    await session.execute(
+        insert(RoutingKey)
+        .values(namespace="account", key=key, business_id=business.id, target_id=account_id)
+        .on_conflict_do_update(
+            index_elements=[RoutingKey.namespace, RoutingKey.key],
+            set_={"business_id": business.id, "target_id": account_id},
+        )
+    )
+
+
 async def save_account(
     session: AsyncSession,
     services: Services,
@@ -230,13 +276,8 @@ async def save_account(
                 secret=credentials,
                 expires_at=account.token_expires_at,
             )
-    await session.execute(
-        insert(RoutingKey)
-        .values(
-            namespace="account", key=f"{platform}:{info.external_id}", business_id=business.id, target_id=account.id
-        )
-        .on_conflict_do_nothing()
-    )
+    if status != "practice":  # simulated accounts receive no platform webhooks
+        await claim_route(session, business, platform, info.external_id, account.id)
     await append(
         session,
         business_id=business.id,
@@ -294,6 +335,8 @@ async def connect_token(
         raise ValidationFailed(f"Missing {', '.join(missing)}")
     if platform == "discord" and not str(credentials["webhook_url"]).startswith("https://discord.com/api/webhooks/"):
         raise ValidationFailed("Use a Discord channel webhook URL (https://discord.com/api/webhooks/…)")
+    if platform == "whatsapp" and not str(settings.get("phone_number_id", "")).isdigit():
+        raise ValidationFailed("Add the WhatsApp phone number ID (digits) from Meta's WhatsApp Manager")
     if platform == "telegram" and not settings.get("chat_id"):
         raise ValidationFailed("Add the channel's chat id or @username, and make the bot an admin of the channel")
     probe = ChannelAccount(

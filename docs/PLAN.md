@@ -67,6 +67,15 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-23 — WhatsApp (M4) via the Cloud API: connect with token + phone number ID (verified against the
+  number's profile); inbound messages arrive through the signed Meta webhook into the inbox and the CRM by
+  phone; START records opt-in with evidence, STOP withdraws it; delivery/read/failure receipts update
+  messages; sequences can send by WhatsApp (free text inside the 24-hour window, approved templates outside
+  it, otherwise skipped with the reason; migration 0004 adds message metadata); inbox replies over WhatsApp.
+  Fix (all platforms): connecting an account already connected to another business silently left its
+  webhooks with the first business; now refused while it's live there, and taken over once it's removed.
+  CI confirmed green on GitHub. 104 backend tests.
+
 - 2026-11-23 — Asset library (M4): uploads typed by their bytes (never the browser's claim), per-type size
   limits, image dimensions, EXIF/IPTC stripped from JPEGs (no GPS or device data leaks), tags, alt text,
   search, signed URLs, deletion blocked while an upcoming post uses the file. Content → Library view and

@@ -20,10 +20,19 @@ from projectx.spine.jobs.queue import enqueue
 router = APIRouter(prefix="/api/v1/b/{business_id}/gtm", tags=["gtm: nurture"])
 
 
+class TemplateRef(BaseModel):
+    """An approved WhatsApp template, needed outside the 24-hour window."""
+
+    name: str = Field(min_length=1, max_length=512, pattern=r"^[a-z0-9_]+$")
+    language: str = Field(default="en", max_length=15)
+    params: list[str] = Field(default_factory=list, max_length=10)
+
+
 class Step(BaseModel):
     delay_hours: float = Field(ge=0, le=24 * 60)
     subject: str = Field(default="", max_length=300)
     body: str = Field(min_length=1, max_length=20_000)
+    template: TemplateRef | None = None
 
 
 class SequenceIn(BaseModel):

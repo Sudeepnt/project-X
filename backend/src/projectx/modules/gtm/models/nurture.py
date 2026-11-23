@@ -72,6 +72,7 @@ class Message(IdMixin, TenantMixin, Base):
     sent_at: Mapped[datetime | None]
     opened_at: Mapped[datetime | None]
     clicked_at: Mapped[datetime | None]
+    meta: Mapped[dict[str, Any]] = mapped_column(default=dict, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(server_default=text("now()"))
 
 

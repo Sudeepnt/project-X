@@ -87,4 +87,11 @@ async def reply(
         )
         raise_for_status(response, "Telegram")
         return {"external_id": str(response.json().get("result", {}).get("message_id"))}
+    if platform == "whatsapp":
+        from projectx.modules.gtm.channels.whatsapp import WhatsAppAdapter
+
+        # Replying to someone who just wrote to us is always inside the 24-hour window.
+        ctx.settings.setdefault("phone_number_id", account.external_id)
+        message_id = await WhatsAppAdapter().send(ctx, to=str(thread_id or target_id), text=text)
+        return {"external_id": message_id}
     raise PlatformRejected(f"Replying on {platform} isn't supported yet; reply in the app")

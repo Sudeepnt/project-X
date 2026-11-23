@@ -50,6 +50,18 @@ const TOKEN_FIELDS: Record<
     ],
     settings: [{ key: "chat_id", label: "Channel", hint: "@yourchannel or the numeric chat id." }],
   },
+  whatsapp: {
+    credentials: [
+      {
+        key: "access_token",
+        label: "Access token",
+        hint: "A permanent system-user token from Meta Business settings.",
+      },
+    ],
+    settings: [
+      { key: "phone_number_id", label: "Phone number ID", hint: "WhatsApp Manager → Phone numbers (digits only)." },
+    ],
+  },
   discord: {
     credentials: [{ key: "webhook_url", label: "Webhook URL", hint: "Channel settings → Integrations → Webhooks." }],
     settings: [],

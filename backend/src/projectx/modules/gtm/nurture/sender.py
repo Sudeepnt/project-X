@@ -15,7 +15,7 @@ from projectx.modules.gtm.nurture.sequences import queue_message, should_stop
 from projectx.spine.decisions.executors import ExecutionContext, ExecutionResult, executor
 from projectx.spine.decisions.service import Proposal, assess, propose
 from projectx.spine.jobs.queue import enqueue
-from projectx.spine.jobs.registry import JobContext, PermanentFailure, job, periodic
+from projectx.spine.jobs.registry import JobContext, PermanentFailure, RetryLater, job, periodic
 from projectx.spine.ledger.service import Actor, append
 from projectx.spine.policy import autonomy
 from projectx.spine.policy.service import get_policy
@@ -82,6 +82,7 @@ async def process_sequences(ctx: JobContext) -> dict[str, Any] | None:
                 body=step.get("body", ""),
                 sequence_id=seq.id,
                 enrollment_id=enrollment.id,
+                meta={"template": step["template"]} if step.get("template") else None,
             )
             proposal = Proposal(
                 action_type="gtm.send_sequence_step",
@@ -131,6 +132,56 @@ async def _approved_sequence_step(ctx: ExecutionContext) -> ExecutionResult:
     return ExecutionResult(data={"message_id": message_id}, undo_payload={"message_id": message_id})
 
 
+async def _send_whatsapp(
+    ctx: JobContext, session: Any, business: Business, contact: Contact, message: Message
+) -> dict[str, Any]:
+    """Free text inside the 24-hour window; an approved template outside it; otherwise held back with the reason."""
+    from projectx.modules.gtm.channels.adapters.base import AdapterError, PlatformRejected
+    from projectx.modules.gtm.channels.publisher import adapter_context
+    from projectx.modules.gtm.channels.whatsapp import WhatsAppAdapter, account_for, in_window, normalise_phone
+
+    phone = normalise_phone(contact.phone)
+    account = await account_for(session, business.id)
+    template = (message.meta or {}).get("template")
+    if phone is None or account is None:
+        message.status, message.error = "suppressed", "no WhatsApp number or no connected WhatsApp account"
+        return {"suppressed": True}
+    window = in_window(contact.attributes)
+    if not window and not template:
+        message.status, message.error = "suppressed", "outside the 24-hour window and no approved template set"
+        return {"suppressed": "needs template"}
+    if account.status == "practice":
+        provider_id = f"sim-wa-{message.id.hex[:12]}"
+    else:
+        actx = await adapter_context(ctx.services, session, account, f"whatsapp message {message.id}")
+        actx.settings.setdefault("graph_version", ctx.services.settings.whatsapp_graph_version)
+        try:
+            provider_id = await WhatsAppAdapter().send(
+                actx, to=phone, text=message.body_text if window else None, template=None if window else template
+            )
+        except PlatformRejected as exc:
+            message.status, message.error = "failed", str(exc)[:500]
+            return {"failed": str(exc)}
+        except AdapterError as exc:
+            raise RetryLater(exc.retry_after or 60, str(exc)) from exc
+    message.status, message.provider_id, message.sent_at = "sent", provider_id, utcnow()
+    await append(
+        session,
+        business_id=business.id,
+        type="gtm.message.sent",
+        actor=Actor.agent("pack:gtm.nurture"),
+        subject=("message", message.id),
+        data={
+            "message_id": str(message.id),
+            "channel": "whatsapp",
+            "kind": message.kind,
+            "sequence_id": str(message.sequence_id) if message.sequence_id else None,
+            "issue_id": None,
+        },
+    )
+    return {"sent": str(message.id)}
+
+
 @job("gtm.send_message", max_attempts=6, timeout_s=120, priority=30)
 async def send_message(ctx: JobContext) -> dict[str, Any] | None:
     business_id = ctx.require_business()
@@ -149,6 +200,8 @@ async def send_message(ctx: JobContext) -> dict[str, Any] | None:
         if message.channel == "email" and await remaining(session, business, "emails_per_month") == 0:
             message.status, message.error = "suppressed", "monthly email limit reached on the plan"
             return {"suppressed": "plan limit"}
+        if message.channel == "whatsapp":
+            return await _send_whatsapp(ctx, session, business, contact, message)
         to_email, channel = contact.email, message.channel
         subject, html, text = message.subject or "", message.body_html or "", message.body_text
         reply_to = (business.settings or {}).get("reply_to_email")
