@@ -74,3 +74,17 @@ class Report(IdMixin, TenantMixin, Base):
     data: Mapped[dict[str, Any]] = mapped_column(default=dict, server_default="{}")
     narrative: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+class BenchmarkContribution(Base):
+    """An anonymous weekly figure from a business that opted in to benchmarks (no business id, no PII)."""
+
+    __tablename__ = "benchmark_contributions"
+    __table_args__ = (Index("ix_benchmark_contributions_lookup", "business_model", "metric", "week"),)
+
+    contributor: Mapped[str] = mapped_column(String(64), primary_key=True)
+    week: Mapped[date] = mapped_column(primary_key=True)
+    business_model: Mapped[str] = mapped_column(String(30))
+    metric: Mapped[str] = mapped_column(String(40), primary_key=True)
+    platform: Mapped[str] = mapped_column(String(30), primary_key=True, default="")
+    value: Mapped[float] = mapped_column(Float)

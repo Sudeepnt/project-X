@@ -11,6 +11,7 @@ import {
   PlatformMark,
   platformLabel,
   Segmented,
+  Switch,
   Tabs,
   TabsContent,
   TabsList,
@@ -291,6 +292,126 @@ function Reports({ bid }: { bid: string }) {
   );
 }
 
+interface BenchmarkItem {
+  metric: string;
+  platform: string | null;
+  you: number | null;
+  median: number;
+  p25: number;
+  p75: number;
+  businesses: number;
+}
+
+const BENCH_LABEL: Record<string, string> = {
+  engagement_rate: "Engagement rate",
+  reach_per_post: "Reach per post",
+  posts_per_week: "Posts per week",
+  page_conversion: "Landing page conversion",
+  cost_per_lead_usd: "Cost per lead (USD)",
+};
+const isRate = (m: string) => m === "engagement_rate" || m === "page_conversion";
+const fmtBench = (m: string, v: number) =>
+  isRate(m)
+    ? formatPercent(v, 1)
+    : m === "cost_per_lead_usd"
+      ? `$${v.toFixed(2)}`
+      : m === "posts_per_week"
+        ? v.toFixed(1)
+        : formatCompact(v);
+
+function Benchmarks({ bid }: { bid: string }) {
+  const { data, isLoading } = useApi<{
+    sharing: boolean;
+    min_businesses: number;
+    business_model?: string;
+    items: BenchmarkItem[];
+  }>(gpath(bid, "/analytics/benchmarks"));
+  const toggle = useAction((share: boolean) => api.put(gpath(bid, "/analytics/benchmarks"), { share }), {
+    invalidate: [gpath(bid, "/analytics/benchmarks")],
+    success: (r) =>
+      (r as { sharing: boolean }).sharing
+        ? "Thanks for sharing. Your figures join next week's benchmarks."
+        : "Sharing off. Everything you shared was deleted.",
+  });
+  if (isLoading || !data) return <Loading />;
+  return (
+    <div className="space-y-6">
+      <Card className="flex flex-wrap items-center justify-between gap-4 p-5">
+        <div className="max-w-xl">
+          <div className="text-[15px] font-semibold">Compare with similar businesses</div>
+          <p className="mt-1 text-[13px] text-muted">
+            Share anonymous weekly rates (engagement, reach per post, conversion) and see how you compare. No names,
+            content or contacts are shared, and a figure only appears when at least {data.min_businesses} businesses
+            contribute. Turning it off deletes what you shared.
+          </p>
+        </div>
+        <Switch label="Share anonymous benchmarks" checked={data.sharing} onCheckedChange={(v) => toggle.mutate(v)} />
+      </Card>
+      {data.sharing ? (
+        data.items.length ? (
+          <Card>
+            <CardHeader
+              title={`Businesses like yours (${sentence(data.business_model ?? "")})`}
+              subtitle="The bar is the middle half of businesses; the line is the median; the dot is you (last 4 weeks)."
+            />
+            <ul className="divide-y divide-[var(--hairline)] pb-2">
+              {data.items.map((b) => {
+                const hi = Math.max(b.p75, b.you ?? 0, b.median) * 1.25 || 1;
+                const pos = (v: number) => `${Math.min((v / hi) * 100, 100)}%`;
+                return (
+                  <li
+                    key={`${b.metric}${b.platform}`}
+                    className="grid grid-cols-1 gap-2 px-5 py-3 sm:grid-cols-[220px_1fr_120px] sm:items-center"
+                  >
+                    <div className="flex items-center gap-2 text-[13px]">
+                      {b.platform ? <PlatformMark platform={b.platform} size={18} /> : null}
+                      <span className="font-medium">{BENCH_LABEL[b.metric] ?? sentence(b.metric)}</span>
+                    </div>
+                    <div
+                      className="relative h-6"
+                      role="img"
+                      aria-label={`Middle half ${fmtBench(b.metric, b.p25)} to ${fmtBench(b.metric, b.p75)}, median ${fmtBench(b.metric, b.median)}${b.you != null ? `, you ${fmtBench(b.metric, b.you)}` : ""}`}
+                    >
+                      <div className="absolute inset-x-0 top-2.5 h-1 rounded-full bg-fill-2" />
+                      <div
+                        className="absolute top-1.5 h-3 rounded-full bg-[var(--series-1)] opacity-25"
+                        style={{ left: pos(b.p25), width: `calc(${pos(b.p75)} - ${pos(b.p25)})` }}
+                      />
+                      <div className="absolute top-0.5 h-5 w-0.5 bg-text-2" style={{ left: pos(b.median) }} />
+                      {b.you != null ? (
+                        <div
+                          className="absolute top-1 size-4 -translate-x-1/2 rounded-full border-2 border-[var(--surface)] bg-[var(--series-1)] shadow"
+                          style={{ left: pos(b.you) }}
+                        />
+                      ) : null}
+                    </div>
+                    <div className="text-right text-[12px] tabular">
+                      <div className="font-medium text-text">
+                        {b.you != null ? fmtBench(b.metric, b.you) : "—"}{" "}
+                        <span className="font-normal text-muted">you</span>
+                      </div>
+                      <div className="text-muted">
+                        {fmtBench(b.metric, b.median)} median · {b.businesses}
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </Card>
+        ) : (
+          <Card>
+            <EmptyState
+              title="Not enough businesses yet"
+              body={`Benchmarks appear once ${data.min_businesses} similar businesses share each figure.`}
+            />
+          </Card>
+        )
+      ) : null}
+    </div>
+  );
+}
+
 export function Analytics() {
   const bid = useBid();
   const currency = useCurrency(bid);
@@ -322,6 +443,7 @@ export function Analytics() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="working">What's working</TabsTrigger>
           <TabsTrigger value="reports">Weekly reviews</TabsTrigger>
+          <TabsTrigger value="benchmarks">Benchmarks</TabsTrigger>
         </TabsList>
         <TabsContent value="overview">
           {isLoading ? (
@@ -409,6 +531,9 @@ export function Analytics() {
         </TabsContent>
         <TabsContent value="working">
           <Working bid={bid} days={Number(days)} />
+        </TabsContent>
+        <TabsContent value="benchmarks">
+          <Benchmarks bid={bid} />
         </TabsContent>
         <TabsContent value="reports">
           <Reports bid={bid} />

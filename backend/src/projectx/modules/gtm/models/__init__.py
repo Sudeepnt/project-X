@@ -7,7 +7,13 @@ from projectx.modules.gtm.models.compliance import DataRequest
 from projectx.modules.gtm.models.content import Asset, ContentFingerprint, ContentItem, ContentTheme, ContentVariant
 from projectx.modules.gtm.models.engagement import CommunityDaily, CommunityMember, InboxItem
 from projectx.modules.gtm.models.growth import LandingPage, LandingVariant, LinkClick, PageEvent, PromoCode, TrackedLink
-from projectx.modules.gtm.models.learning import Experiment, ExperimentVariant, PatternStat, Report
+from projectx.modules.gtm.models.learning import (
+    BenchmarkContribution,
+    Experiment,
+    ExperimentVariant,
+    PatternStat,
+    Report,
+)
 from projectx.modules.gtm.models.nurture import Message, NewsletterIssue, Sequence, SequenceEnrollment
 from projectx.modules.gtm.models.strategy import Campaign, Goal, Restriction
 
@@ -17,6 +23,7 @@ __all__ = [
     "AdMetricDaily",
     "Asset",
     "Audience",
+    "BenchmarkContribution",
     "BrandBook",
     "Campaign",
     "ChannelAccount",

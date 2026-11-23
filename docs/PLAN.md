@@ -59,13 +59,19 @@ Future modules (finance, legal, people…) plug in the same way.
       verification, simulator), inbox, email + sequences + newsletter, analytics + weekly
       report, experiments + learning memory, compliance, media kit
 - [x] M3 Web cockpit: design system, shell, auth, onboarding, every module screen
-- [ ] M4 Phase 2/3: Discord bot, ads engine (Meta/Google) with caps, billing + plans + usage,
+- [x] M4 Phase 2/3: Discord bot, ads engine (Meta/Google) with caps, billing + plans + usage,
       unified social API mode, cross-business benchmarks (opt-in)
 - [ ] M5 Hardening: security headers/CSP, rate limits, performance, docs, deploy guide
 
 ## Status log
 
 (Newest first.)
+
+- 2026-11-23 — Cross-business benchmarks (M4 complete): opt-in only, and only contributors can see them.
+  Weekly rates (engagement, reach per post, posts per week, page conversion, USD cost per lead) are stored
+  under a salted one-way contributor id with no business id (migration 0005). A figure shows only when at
+  least 5 similar businesses contribute; turning sharing off deletes everything shared. Analytics →
+  Benchmarks shows you against the middle half and the median. 107 backend + 12 web tests.
 
 - 2026-11-23 — WhatsApp (M4) via the Cloud API: connect with token + phone number ID (verified against the
   number's profile); inbound messages arrive through the signed Meta webhook into the inbox and the CRM by

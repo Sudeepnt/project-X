@@ -25,6 +25,7 @@ for _name in (
     "projectx.modules.gtm.analytics.report",
     "projectx.modules.gtm.inbox.service",
     "projectx.modules.gtm.ads.service",
+    "projectx.modules.gtm.analytics.benchmarks",
 ):
     importlib.import_module(_name)
 
@@ -32,6 +33,7 @@ from projectx.modules.gtm import cycles  # noqa: E402
 from projectx.modules.gtm.ads.api import router as ads_router  # noqa: E402
 from projectx.modules.gtm.analytics.api import public_router as analytics_public_router  # noqa: E402
 from projectx.modules.gtm.analytics.api import router as analytics_router  # noqa: E402
+from projectx.modules.gtm.analytics.benchmarks import router as benchmarks_router  # noqa: E402
 from projectx.modules.gtm.assets import router as assets_router  # noqa: E402
 from projectx.modules.gtm.community.discord import public_router as discord_public_router  # noqa: E402
 from projectx.modules.gtm.community.discord import router as discord_router  # noqa: E402
@@ -78,6 +80,7 @@ MODULE = register_module(
             ads_router,
             discord_router,
             assets_router,
+            benchmarks_router,
         ],
         public_routers=[
             growth_public_router,

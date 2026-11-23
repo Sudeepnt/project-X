@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from projectx.kernel.money import Money
 from projectx.kernel.time import today_in, utcnow
+from projectx.modules.gtm.config import gtm_settings
 from projectx.modules.gtm.crm.automations import mark_inactive_customers
 from projectx.modules.gtm.goals.metrics import churn_rate, new_customers, new_leads, new_subscribers, revenue
 from projectx.modules.gtm.goals.service import goal_view, pace_all
@@ -75,6 +76,16 @@ async def weekly_cycle(services: Services, business_id: uuid.UUID) -> None:
             business_id=business_id,
             idempotency_key=f"report:{business_id}:{week.year}-{week.week}",
         )
+    async with services.db.tenant(business_id) as session:
+        business = await session.get(Business, business_id)
+        if business is not None and gtm_settings(business).get("benchmarks", {}).get("share"):
+            week = today_in(business.timezone).isocalendar()
+            await enqueue(
+                session,
+                "gtm.benchmarks_contribute",
+                business_id=business_id,
+                idempotency_key=f"bench:{business_id}:{week.year}-{week.week}",
+            )
 
 
 async def numbers(session: AsyncSession, business_id: uuid.UUID) -> dict[str, Any]:
