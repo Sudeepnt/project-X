@@ -70,3 +70,35 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check
       - run: pnpm run build
+
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [backend, web]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the production image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: projectx:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test (migrate, then serve the API and cockpit)
+        run: |
+          docker network create px
+          docker run -d --name db --network px -e POSTGRES_PASSWORD=postgres \
+            -v "$PWD/infra/docker/postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro" pgvector/pgvector:pg18
+          for i in $(seq 1 30); do docker exec db pg_isready -U postgres -d projectx && break; sleep 2; done
+          ENV="-e PX_ENV=dev -e PX_DATABASE_URL=postgresql+asyncpg://projectx:projectx@db:5432/projectx"
+          docker run --rm --network px $ENV projectx:ci projectx migrate
+          docker run -d --name api --network px -p 8010:8010 $ENV projectx:ci
+          for i in $(seq 1 30); do curl -fsS localhost:8010/healthz && break; sleep 2; done
+          curl -fsS localhost:8010/readyz
+          curl -fsS localhost:8010/login | grep -q '<div id="root">'
+          docker run --rm projectx:ci id -u | grep -qx 10001
+      - name: Logs on failure
+        if: failure()
+        run: docker logs api || true

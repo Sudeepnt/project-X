@@ -17,13 +17,16 @@ BACKEND_DIR = Path(__file__).resolve().parents[2]
 def _run_api(args: argparse.Namespace) -> None:
     import uvicorn
 
+    from projectx.settings import get_settings
+
     uvicorn.run(
         "projectx.api.main:app",
         host=args.host,
         port=args.port,
         reload=args.reload,
         proxy_headers=True,
-        forwarded_allow_ips="*",
+        # Only trust X-Forwarded-For from your own proxy; otherwise clients could fake their IP.
+        forwarded_allow_ips=get_settings().forwarded_allow_ips,
         log_config=None,
         access_log=False,
     )
@@ -98,6 +101,15 @@ async def _discord_commands() -> int:
     return 0
 
 
+def _generate_keys() -> None:
+    import base64
+    import secrets
+
+    print("# Store these in your secret manager. Losing PX_VAULT_MASTER_KEY makes stored credentials unreadable.")
+    print(f"PX_SECRET_KEY={secrets.token_urlsafe(48)}")
+    print(f"PX_VAULT_MASTER_KEY={base64.b64encode(secrets.token_bytes(32)).decode()}")
+
+
 def _openapi(args: argparse.Namespace) -> None:
     from projectx.api.app import create_app
 
@@ -123,6 +135,7 @@ def main() -> None:
     verify = sub.add_parser("verify-ledger", help="check a business's ledger hash chain")
     verify.add_argument("business_id")
     sub.add_parser("discord-commands", help="install or update the Discord bot's slash commands")
+    sub.add_parser("generate-keys", help="print fresh PX_SECRET_KEY and PX_VAULT_MASTER_KEY values")
     openapi = sub.add_parser("openapi", help="print the OpenAPI document")
     openapi.add_argument("--output", default=None)
     args = parser.parse_args()
@@ -139,6 +152,8 @@ def main() -> None:
         asyncio.run(run_seed())
     elif args.cmd == "verify-ledger":
         sys.exit(asyncio.run(_verify_ledger(args.business_id)))
+    elif args.cmd == "generate-keys":
+        _generate_keys()
     elif args.cmd == "discord-commands":
         sys.exit(asyncio.run(_discord_commands()))
     elif args.cmd == "openapi":

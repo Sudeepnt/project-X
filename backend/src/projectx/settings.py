@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     env: Literal["dev", "test", "staging", "prod"] = "dev"
     app_name: str = "Project X"
     base_url: str = "http://localhost:8010"
+    # Proxies allowed to set X-Forwarded-For (comma-separated IPs/CIDRs). "*" only if the API is unreachable
+    # except through your proxy.
+    forwarded_allow_ips: str = "127.0.0.1"
     web_url: str = "http://localhost:5173"
     log_level: str = "INFO"
     log_json: bool = False
@@ -72,6 +75,13 @@ class Settings(BaseSettings):
 
     # --- files ---
     blob_dir: str = ".local/blobs"
+    # "s3" for any S3-compatible store (AWS S3, Cloudflare R2, MinIO…); needed once you run more than one server.
+    blob_backend: Literal["local", "s3"] = "local"
+    s3_bucket: str | None = None
+    s3_region: str | None = None
+    s3_endpoint_url: str | None = None  # leave empty for AWS; e.g. https://<account>.r2.cloudflarestorage.com
+    s3_access_key_id: str | None = None
+    s3_secret_access_key: SecretStr | None = None
     max_upload_mb: int = 200
 
     # --- worker ---
@@ -140,6 +150,12 @@ class Settings(BaseSettings):
             problems.append("PX_VAULT_MASTER_KEY must be set to a production key")
         if not self.base_url.startswith("https://"):
             problems.append("PX_BASE_URL must use https in staging/production")
+        if not self.web_url.startswith("https://"):
+            problems.append("PX_WEB_URL must use https in staging/production")
+        if self.smtp_host in ("localhost", "127.0.0.1", "mailpit"):
+            problems.append("PX_SMTP_HOST must point at a real mail provider (sign-up, reset and invites send email)")
+        if self.blob_backend == "s3" and not self.s3_bucket:
+            problems.append("PX_S3_BUCKET is required when PX_BLOB_BACKEND=s3")
         if problems:
             raise ValueError("Unsafe production configuration: " + "; ".join(problems))
         return self

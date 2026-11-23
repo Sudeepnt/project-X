@@ -7,7 +7,7 @@ short queue of decisions, and three numbers (revenue, profit, churn).
 This repository holds the **spine** that every department shares, and the **modules**, one per
 department. The first module is **GTM** (go-to-market).
 
-> Status and roadmap: [`docs/PLAN.md`](docs/PLAN.md) · Architecture: [`docs/architecture.md`](docs/architecture.md)
+> Status and roadmap: [`docs/PLAN.md`](docs/PLAN.md) · Architecture: [`docs/architecture.md`](docs/architecture.md) · Deploying: [`docs/DEPLOY.md`](docs/DEPLOY.md)
 
 ## What makes it trustworthy
 
@@ -30,8 +30,14 @@ PostgreSQL 18 with pgvector (`brew install postgresql@18 pgvector uv pnpm`).
 make setup     # start Postgres, create the app role and databases, migrate, install web deps
 make api       # API on http://localhost:8010  (docs at /api/docs)
 make worker    # background jobs and the daily cycle (separate terminal)
-make web-dev   # cockpit on http://localhost:5173 (separate terminal)
-make seed      # optional: a practice company with sample data
+make web-dev   # cockpit with hot reload on http://localhost:5173 (separate terminal)
+make seed      # optional: a practice company with sample data (prints the demo sign-in)
+```
+
+Or run the whole production-like stack in containers:
+
+```bash
+docker compose up --build     # http://localhost:8010 (API + cockpit) · mail catcher http://localhost:8025
 ```
 
 Everything works without any external account: model calls use the offline provider, and
@@ -57,6 +63,7 @@ backend/   Python 3.13 · FastAPI · SQLAlchemy 2 (async) · PostgreSQL 18 · Al
                          gateway, memory, notifications, billing, twin, cockpit
   src/projectx/modules   department modules (gtm/ first)
 web/       React · TypeScript · Vite · TanStack Router/Query · Tailwind — the cockpit
-infra/     local scripts, Docker images, deployment
+infra/     local scripts, database bootstrap for containers
+Dockerfile, docker-compose.yml   one image for API, cockpit and worker
 docs/      plan, architecture, decisions, module specs
 ```

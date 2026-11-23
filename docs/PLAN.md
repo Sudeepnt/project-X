@@ -67,6 +67,14 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-23 — M5 deploy and hardening, part 1: one Docker image (non-root, health check, JSON logs) serving the
+  API, cockpit and worker; docker-compose stack (Postgres + pgvector with a non-superuser role, migrate job,
+  mail catcher); CI builds and smoke-tests the image. S3-compatible storage (encrypted, presigned URLs; AWS S3,
+  R2, MinIO) next to local disk. `projectx generate-keys`. Production refuses plain-http web URLs, a dev mail
+  host or S3 without a bucket. Security fix: the API trusted X-Forwarded-For from anyone (rate limits could be
+  dodged); now only configured proxies. docs/DEPLOY.md and docs/architecture.md. 109 backend tests.
+  Not yet verified locally: Docker isn't installed on the dev Mac; the CI image job is the check.
+
 - 2026-11-23 — Cross-business benchmarks (M4 complete): opt-in only, and only contributors can see them.
   Weekly rates (engagement, reach per post, posts per week, page conversion, USD cost per lead) are stored
   under a salted one-way contributor id with no business id (migration 0005). A figure shows only when at

@@ -1,0 +1,15 @@
+**/node_modules
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+web/dist
+web/coverage
+backend/.local
+.git
+.github
+.env
+.env.*
+!.env.example
+*.pdf

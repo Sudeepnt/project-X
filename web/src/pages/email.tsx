@@ -100,7 +100,8 @@ function SequenceEditor({ bid, seq }: { bid: string; seq: Sequence }) {
               {seq.trigger.type === "stage_entered"
                 ? `When someone becomes ${seq.trigger.stage?.toUpperCase() === "MQL" ? "an MQL" : `a ${seq.trigger.stage}`}`
                 : sentence(seq.trigger.type)}{" "}
-              · {seq.steps.length} emails
+              · {seq.steps.length} {seq.channel === "whatsapp" ? "message" : "email"}
+              {seq.steps.length === 1 ? "" : "s"}
             </div>
           </div>
         </button>

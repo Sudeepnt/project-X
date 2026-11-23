@@ -9,7 +9,7 @@ import httpx
 
 from projectx.db.database import Database
 from projectx.settings import Settings
-from projectx.spine.blobs import LocalBlobStore
+from projectx.spine.blobs import BlobStore, LocalBlobStore, S3BlobStore
 from projectx.spine.gateway.gateway import ModelGateway
 from projectx.spine.mail import Mailer
 from projectx.spine.vault.crypto import LocalKEK
@@ -23,7 +23,7 @@ class Services:
     vault: Vault
     gateway: ModelGateway
     mailer: Mailer
-    blobs: LocalBlobStore
+    blobs: BlobStore
     http: httpx.AsyncClient
 
     @classmethod
@@ -40,9 +40,7 @@ class Services:
             vault=Vault(LocalKEK(settings.vault_master_key.get_secret_value())),
             gateway=ModelGateway(settings, db),
             mailer=Mailer(settings),
-            blobs=LocalBlobStore(
-                settings.blob_dir, base_url=settings.base_url, secret=settings.secret_key.get_secret_value()
-            ),
+            blobs=_blob_store(settings),
             http=httpx.AsyncClient(
                 timeout=httpx.Timeout(30.0, connect=10.0),
                 headers={"User-Agent": "ProjectX/0.1 (+https://github.com/Sudeepnt/project-X)"},
@@ -66,3 +64,19 @@ class Services:
     async def close(self) -> None:
         await self.http.aclose()
         await self.db.dispose()
+
+
+def _blob_store(settings: Settings) -> BlobStore:
+    if settings.blob_backend == "s3":
+        if not settings.s3_bucket:
+            raise RuntimeError("PX_S3_BUCKET is required when PX_BLOB_BACKEND=s3")
+        return S3BlobStore(
+            bucket=settings.s3_bucket,
+            region=settings.s3_region,
+            endpoint_url=settings.s3_endpoint_url,
+            access_key_id=settings.s3_access_key_id,
+            secret_access_key=(
+                settings.s3_secret_access_key.get_secret_value() if settings.s3_secret_access_key else None
+            ),
+        )
+    return LocalBlobStore(settings.blob_dir, base_url=settings.base_url, secret=settings.secret_key.get_secret_value())
