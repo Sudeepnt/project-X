@@ -29,7 +29,7 @@ from projectx.modules.gtm.config import gtm_settings, update_gtm_settings
 from projectx.modules.gtm.content.calendar import upcoming
 from projectx.modules.gtm.content.hooks import HOOKS
 from projectx.modules.gtm.content.importer import import_items
-from projectx.modules.gtm.models import ChannelAccount, ContentItem, ContentTheme, ContentVariant, Post
+from projectx.modules.gtm.models import Asset, ChannelAccount, ContentItem, ContentTheme, ContentVariant, Post
 from projectx.modules.gtm.platforms import FORMAT_LABELS, PLATFORMS, platform_view
 from projectx.services import Services
 from projectx.spine.decisions import service as decisions
@@ -42,7 +42,18 @@ router = APIRouter(prefix="/api/v1/b/{business_id}/gtm", tags=["gtm: content & c
 public_router = APIRouter(include_in_schema=False)
 
 
-def variant_view(v: ContentVariant) -> dict[str, Any]:
+def media_view(media: list[Any], blobs: Any | None) -> list[dict[str, Any]]:
+    """Library files get a short-lived signed URL so the editor can show them; links pass through."""
+    out = []
+    for m in media or []:
+        item = dict(m)
+        if blobs is not None and item.get("key") and not item.get("url"):
+            item["url"] = blobs.signed_url(item["key"], ttl_s=3600)
+        out.append(item)
+    return out
+
+
+def variant_view(v: ContentVariant, blobs: Any | None = None) -> dict[str, Any]:
     return {
         "id": str(v.id),
         "platform": v.platform,
@@ -52,7 +63,7 @@ def variant_view(v: ContentVariant) -> dict[str, Any]:
         "title": v.title,
         "text": v.text,
         "thread": v.thread,
-        "media": v.media,
+        "media": media_view(v.media, blobs),
         "hashtags": v.hashtags,
         "spec": v.spec,
         "status": v.status,
@@ -61,7 +72,7 @@ def variant_view(v: ContentVariant) -> dict[str, Any]:
     }
 
 
-def item_view(i: ContentItem, variants: list[ContentVariant] | None = None) -> dict[str, Any]:
+def item_view(i: ContentItem, variants: list[ContentVariant] | None = None, blobs: Any | None = None) -> dict[str, Any]:
     out = {
         "id": str(i.id),
         "campaign_id": str(i.campaign_id) if i.campaign_id else None,
@@ -85,7 +96,7 @@ def item_view(i: ContentItem, variants: list[ContentVariant] | None = None) -> d
         "created_at": i.created_at.isoformat(),
     }
     if variants is not None:
-        out["variants"] = [variant_view(v) for v in variants]
+        out["variants"] = [variant_view(v, blobs) for v in variants]
     return out
 
 
@@ -123,7 +134,7 @@ async def list_content(
             )
         ).scalars():
             variants.setdefault(v.content_id, []).append(v)
-    return {"items": [item_view(i, variants.get(i.id, [])) for i in items]}
+    return {"items": [item_view(i, variants.get(i.id, []), ctx.services.blobs) for i in items]}
 
 
 @router.get("/content/calendar")
@@ -163,7 +174,7 @@ async def get_content(content_id: uuid.UUID, ctx: BusinessDep) -> dict[str, Any]
         (await ctx.session.execute(select(ContentVariant).where(ContentVariant.content_id == item.id))).scalars()
     )
     posts = (await ctx.session.execute(select(Post).where(Post.content_id == item.id))).scalars().all()
-    return {**item_view(item, variants), "posts": [post_view(p) for p in posts]}
+    return {**item_view(item, variants, ctx.services.blobs), "posts": [post_view(p) for p in posts]}
 
 
 class ContentIn(BaseModel):
@@ -238,11 +249,38 @@ async def edit_content(content_id: uuid.UUID, body: ContentPatch, ctx: EditorDep
     return item_view(item)
 
 
+class MediaIn(BaseModel):
+    """Either a file from this business's asset library (`key`) or a public https URL."""
+
+    key: str | None = Field(default=None, max_length=300)
+    url: str | None = Field(default=None, max_length=2000)
+    kind: Literal["image", "video", "document"] = "image"
+    alt_text: str | None = Field(default=None, max_length=500)
+
+
 class VariantPatch(BaseModel):
     text: str | None = Field(default=None, max_length=10_000)
     title: str | None = Field(default=None, max_length=300)
-    thread: list[str] | None = None
-    media: list[dict[str, Any]] | None = None
+    thread: list[str] | None = Field(default=None, max_length=25)
+    media: list[MediaIn] | None = Field(default=None, max_length=10)
+
+
+async def _validated_media(ctx: Any, media: list[MediaIn]) -> list[dict[str, Any]]:
+    """Never let a post point at another business's files, or at non-https URLs."""
+    out: list[dict[str, Any]] = []
+    for m in media:
+        if m.key:
+            asset = await ctx.session.scalar(
+                select(Asset).where(Asset.business_id == ctx.business_id, Asset.storage_key == m.key)
+            )
+            if asset is None:
+                raise ValidationFailed("That file isn't in your asset library")
+            out.append({"key": asset.storage_key, "kind": asset.kind, "alt_text": m.alt_text or asset.alt_text})
+        elif m.url and m.url.startswith("https://"):
+            out.append({"url": m.url, "kind": m.kind, "alt_text": m.alt_text})
+        else:
+            raise ValidationFailed("Media must be a library file or an https link")
+    return out
 
 
 @router.patch("/variants/{variant_id}")
@@ -254,8 +292,11 @@ async def edit_variant(variant_id: uuid.UUID, body: VariantPatch, ctx: EditorDep
         raise NotFound("Variant not found")
     if variant.status in ("published", "publishing"):
         raise ValidationFailed("This version is already published")
-    for key, value in body.model_dump(exclude_unset=True).items():
+    changes = body.model_dump(exclude_unset=True, exclude={"media"})
+    for key, value in changes.items():
         setattr(variant, key, value)
+    if body.media is not None:
+        variant.media = await _validated_media(ctx, body.media)
     item = await ctx.session.get(ContentItem, variant.content_id)
     if item is not None:
         item.edited_by_human = True
@@ -263,7 +304,7 @@ async def edit_variant(variant_id: uuid.UUID, body: VariantPatch, ctx: EditorDep
     variant.spec = {**(variant.spec or {}), "specs": specs.as_dict()}
     if variant.status in ("blocked", "needs_review") and specs.passed:
         variant.status = "ready"
-    return variant_view(variant)
+    return variant_view(variant, ctx.services.blobs)
 
 
 @router.post("/content/{content_id}/regenerate")

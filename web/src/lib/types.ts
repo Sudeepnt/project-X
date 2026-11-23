@@ -213,7 +213,7 @@ export interface Variant {
   title: string | null;
   text: string;
   thread: string[];
-  media: { url?: string; key?: string; kind?: string }[];
+  media: { url?: string; key?: string; kind?: string; alt_text?: string | null }[];
   spec: { brand?: Check; specs?: Check; ai_label?: string };
   status: string;
   scheduled_at: string | null;

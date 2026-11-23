@@ -67,6 +67,12 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-23 — Asset library (M4): uploads typed by their bytes (never the browser's claim), per-type size
+  limits, image dimensions, EXIF/IPTC stripped from JPEGs (no GPS or device data leaks), tags, alt text,
+  search, signed URLs, deletion blocked while an upcoming post uses the file. Content → Library view and
+  "Add media" on each platform version. Security fix: post media could reference any storage key, including
+  another business's files; now only this business's library files or https links. 99 backend tests.
+
 - 2026-11-23 — Discord community bot (M4) over HTTP interactions (Ed25519-verified, 5-minute replay
   window; no gateway process). Install from the cockpit; the OAuth code exchange proves the server.
   /ask lands in the shared inbox and follows the same reply policy as every channel (common questions

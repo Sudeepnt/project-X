@@ -1,7 +1,18 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { Archive, ChevronLeft, ChevronRight, ExternalLink, PenLine, Plus, RefreshCw, RotateCcw } from "lucide-react";
+import {
+  Archive,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  ImagePlus,
+  PenLine,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { ChecksList } from "@/components/decision";
+import { AssetGrid, MediaPicker } from "@/components/media";
 import {
   aiLabelText,
   Badge,
@@ -198,6 +209,17 @@ function ContentSheet({ bid, id, onClose }: { bid: string; id: string | null; on
     () => Promise.all(Object.entries(texts).map(([vid, text]) => api.patch(gpath(bid, `/variants/${vid}`), { text }))),
     { invalidate: inv, success: "Saved", onSuccess: () => setTexts({}) },
   );
+  const [pickingFor, setPickingFor] = useState<string | null>(null);
+  const setMedia = useAction(
+    ({
+      vid,
+      media,
+    }: {
+      vid: string;
+      media: { key?: string; url?: string; kind?: string; alt_text?: string | null }[];
+    }) => api.patch(gpath(bid, `/variants/${vid}`), { media }),
+    { invalidate: inv, success: "Media updated" },
+  );
   const regenerate = useAction(() => api.post(gpath(bid, `/content/${id}/regenerate`)), {
     invalidate: inv,
     success: "Rewriting. It will come back for review.",
@@ -283,6 +305,42 @@ function ContentSheet({ bid, id, onClose }: { bid: string; id: string | null; on
                 value={texts[v.id] ?? v.text}
                 onChange={(e) => setTexts({ ...texts, [v.id]: e.target.value })}
               />
+              <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
+                {v.media.map((m, i) => (
+                  <span
+                    key={m.key ?? m.url ?? i}
+                    className="group relative size-14 overflow-hidden rounded-[10px] bg-fill-2 ring-1 ring-hairline"
+                  >
+                    {m.kind === "image" && m.url ? (
+                      <img src={m.url} alt="" className="size-full object-cover" />
+                    ) : (
+                      <span className="flex size-full items-center justify-center text-[10px] text-muted uppercase">
+                        {m.kind ?? "file"}
+                      </span>
+                    )}
+                    {editable ? (
+                      <button
+                        type="button"
+                        aria-label="Remove media"
+                        onClick={() => setMedia.mutate({ vid: v.id, media: v.media.filter((_, j) => j !== i) })}
+                        className="absolute inset-0 hidden items-center justify-center bg-black/50 text-[11px] font-medium text-white group-hover:flex"
+                      >
+                        Remove
+                      </button>
+                    ) : null}
+                  </span>
+                ))}
+                {editable && v.media.length < 10 ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={<ImagePlus className="size-4" />}
+                    onClick={() => setPickingFor(v.id)}
+                  >
+                    Add media
+                  </Button>
+                ) : null}
+              </div>
               <div className="flex justify-between px-4 pb-2 text-[11px] text-faint tabular">
                 <span>{aiLabelText(v.spec.ai_label) ?? ""}</span>
                 <span>{(texts[v.id] ?? v.text).length} characters</span>
@@ -294,6 +352,22 @@ function ContentSheet({ bid, id, onClose }: { bid: string; id: string | null; on
               ) : null}
             </div>
           ))}
+          <MediaPicker
+            bid={bid}
+            open={!!pickingFor}
+            setOpen={(o) => !o && setPickingFor(null)}
+            onPick={(a) => {
+              const v = item.variants?.find((x) => x.id === pickingFor);
+              if (v)
+                setMedia.mutate({
+                  vid: v.id,
+                  media: [
+                    ...v.media.filter((m) => m.key !== a.storage_key),
+                    { key: a.storage_key, kind: a.kind, alt_text: a.alt_text },
+                  ],
+                });
+            }}
+          />
           {item.posts?.length ? (
             <div>
               <h4 className="mb-2 text-[13px] font-semibold">Posts</h4>
@@ -510,6 +584,7 @@ export function Content() {
                 { value: "needs_review", label: "To review" },
                 { value: "published", label: "Published" },
                 { value: "all", label: "All" },
+                { value: "library", label: "Library" },
               ]}
             />
             <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setSearch({ new: "1" })}>
@@ -520,6 +595,8 @@ export function Content() {
       />
       {view === "calendar" ? (
         <CalendarView bid={bid} onOpen={(id) => setSearch({ item: id })} />
+      ) : view === "library" ? (
+        <AssetGrid bid={bid} />
       ) : (
         <ListView bid={bid} status={view} onOpen={(id) => setSearch({ item: id })} />
       )}
