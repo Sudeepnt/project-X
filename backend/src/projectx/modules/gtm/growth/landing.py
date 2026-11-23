@@ -229,8 +229,37 @@ def parse_confirm_token(secret: str, token: str) -> tuple[uuid.UUID, uuid.UUID, 
     return uuid.UUID(bytes=data[:16]), uuid.UUID(bytes=data[16:32]), uuid.UUID(bytes=data[32:48])
 
 
+MIN_VIEWS_PER_VARIANT = 100
+WINNER_CONFIDENCE = 0.95
+
+
+def experiment_view(variants: list[LandingVariant]) -> dict[str, Any] | None:
+    """A/B result: each variant's chance of being best, and a winner once the evidence is strong enough."""
+    if len(variants) < 2:
+        return None
+    from projectx.modules.gtm.learning.bandit import prob_best
+
+    chances = prob_best({v.key: (v.views, v.conversions) for v in variants}, samples=3000)
+    leader = max(chances, key=lambda k: chances[k])
+    enough = all(v.views >= MIN_VIEWS_PER_VARIANT for v in variants)
+    if enough and chances[leader] >= WINNER_CONFIDENCE:
+        status = "winner"
+    elif enough:
+        status = "no_clear_winner"
+    else:
+        status = "collecting"
+    return {
+        "prob_best": {k: round(v, 3) for k, v in chances.items()},
+        "leader": leader,
+        "status": status,
+        "min_views_per_variant": MIN_VIEWS_PER_VARIANT,
+        "confidence": WINNER_CONFIDENCE,
+    }
+
+
 def page_view(page: LandingPage, variants: list[LandingVariant], public_url: str) -> dict[str, Any]:
     return {
+        "experiment": experiment_view(variants),
         "id": str(page.id),
         "slug": page.slug,
         "title": page.title,

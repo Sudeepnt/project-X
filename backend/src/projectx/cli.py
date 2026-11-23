@@ -100,7 +100,7 @@ def main() -> None:
     sub = parser.add_subparsers(dest="cmd", required=True)
     api = sub.add_parser("api", help="run the HTTP API")
     api.add_argument("--host", default="127.0.0.1")
-    api.add_argument("--port", type=int, default=8000)
+    api.add_argument("--port", type=int, default=8010)
     api.add_argument("--reload", action="store_true")
     worker = sub.add_parser("worker", help="run background jobs and the scheduler")
     worker.add_argument("--concurrency", type=int, default=None)

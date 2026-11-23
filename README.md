@@ -28,7 +28,7 @@ PostgreSQL 18 with pgvector (`brew install postgresql@18 pgvector uv pnpm`).
 
 ```bash
 make setup     # start Postgres, create the app role and databases, migrate, install web deps
-make api       # API on http://localhost:8000  (docs at /api/docs)
+make api       # API on http://localhost:8010  (docs at /api/docs)
 make worker    # background jobs and the daily cycle (separate terminal)
 make web-dev   # cockpit on http://localhost:5173 (separate terminal)
 make seed      # optional: a practice company with sample data

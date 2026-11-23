@@ -20,7 +20,7 @@ from projectx.spine.identity.security import hash_password
 from projectx.spine.ledger.service import Actor
 from projectx.spine.modules import load_modules
 
-DEMO_EMAIL = "demo@projectx.local"
+DEMO_EMAIL = "demo@example.com"
 
 FIRST = [
     "Aarav",

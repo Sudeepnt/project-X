@@ -11,6 +11,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from starlette.middleware.gzip import GZipMiddleware
+from starlette.types import Scope
 
 from projectx import __version__
 from projectx.api.errors import install_error_handlers, problem
@@ -89,6 +90,16 @@ def create_app(settings: Settings | None = None, services: Services | None = Non
     return app
 
 
+class ImmutableStaticFiles(StaticFiles):
+    """Build assets have content hashes in their names, so browsers may cache them forever."""
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        response = await super().get_response(path, scope)
+        if response.status_code == 200:
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
+
+
 def _mount_web(app: FastAPI) -> None:
     """Serve the built cockpit (web/dist) from the same origin, with client-side routing."""
     dist = Path(__file__).resolve().parents[4] / "web" / "dist"
@@ -96,9 +107,9 @@ def _mount_web(app: FastAPI) -> None:
     if not index.exists():
         return
     if (dist / "assets").exists():
-        app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
+        app.mount("/assets", ImmutableStaticFiles(directory=dist / "assets"), name="assets")
 
-    @app.get("/{path:path}", include_in_schema=False)
+    @app.api_route("/{path:path}", methods=["GET", "HEAD"], include_in_schema=False)
     async def spa(path: str) -> Response:
         if path.startswith(_RESERVED_PREFIXES):
             return problem(404, "not_found", "Not found")

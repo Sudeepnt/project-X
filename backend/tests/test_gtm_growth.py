@@ -182,3 +182,20 @@ def test_payment_event_parsing() -> None:
     )
     assert razor and razor["amount"] == 49900
     assert parse_event("stripe", {"type": "customer.created", "data": {"object": {}}}) is None
+
+
+def test_experiment_view_declares_winner_only_with_enough_evidence() -> None:
+    from types import SimpleNamespace
+
+    from projectx.modules.gtm.growth.landing import experiment_view
+
+    def v(key: str, views: int, conv: int) -> SimpleNamespace:
+        return SimpleNamespace(key=key, views=views, conversions=conv)
+
+    assert experiment_view([v("A", 10, 1)]) is None  # type: ignore[list-item]
+    early = experiment_view([v("A", 40, 8), v("B", 40, 2)])  # type: ignore[list-item]
+    assert early is not None and early["status"] == "collecting" and early["leader"] == "A"
+    clear = experiment_view([v("A", 500, 100), v("B", 500, 50)])  # type: ignore[list-item]
+    assert clear is not None and clear["status"] == "winner" and clear["prob_best"]["A"] > 0.95
+    close = experiment_view([v("A", 500, 51), v("B", 500, 50)])  # type: ignore[list-item]
+    assert close is not None and close["status"] == "no_clear_winner"

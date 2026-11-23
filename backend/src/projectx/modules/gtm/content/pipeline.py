@@ -7,8 +7,9 @@ own. Nothing reaches a platform without passing the checks and the policy engine
 from __future__ import annotations
 
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,6 +33,16 @@ from projectx.spine.memory.service import as_prompt_notes, recall
 from projectx.spine.tenancy.models import Business
 
 AGENT = Actor.agent("pack:gtm.content")
+
+
+def _scheduled_text(when: datetime, timezone: str) -> str:
+    """'Scheduled for Sun 29 Nov, 9:00 AM IST': the founder's own clock, not UTC."""
+    try:
+        local = when.astimezone(ZoneInfo(timezone))
+    except (KeyError, ValueError):
+        local = when
+    hour = local.strftime("%I").lstrip("0") or "12"
+    return f"Scheduled for {local:%a %d %b}, {hour}:{local:%M %p} {local.tzname() or ''}".rstrip()
 
 
 @job("gtm.plan_content", max_attempts=3, timeout_s=300, priority=50)
@@ -299,7 +310,7 @@ async def propose_publication(
                 },
                 new_kind=await _is_new_kind(session, item),
                 violations=tuple(violations),
-                why_now=f"Scheduled for {when:%a %d %b, %H:%M} UTC",
+                why_now=_scheduled_text(when, business.timezone),
                 if_no="It won't be posted; the slot stays empty.",
                 undo="Delete the posts from each platform.",
                 subject=("content", item.id),

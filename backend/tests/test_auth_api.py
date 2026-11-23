@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import httpx
+import pytest
 
 from tests.conftest import new_business, sign_up, unique_email
+
+WEB_DIST = Path(__file__).resolve().parents[2] / "web" / "dist"
+WEB_DIST_BUILT = (WEB_DIST / "index.html").exists()
+WEB_ASSET = next((WEB_DIST / "assets").glob("*.js"), None) if WEB_DIST_BUILT else None
 
 
 async def test_signup_sets_session_and_returns_me(client: httpx.AsyncClient) -> None:
@@ -94,3 +100,16 @@ async def test_security_headers_present(client: httpx.AsyncClient) -> None:
     assert res.headers["x-content-type-options"] == "nosniff"
     assert res.headers["x-frame-options"] == "DENY"
     assert "x-request-id" in res.headers
+
+
+async def test_spa_assets_are_cached_and_head_works(client: Any) -> None:
+    if not WEB_DIST_BUILT:
+        pytest.skip("web/dist not built")
+    page = await client.head("/b/anything/today")
+    assert page.status_code == 200
+    assert page.headers["cache-control"] == "no-cache"
+    asset = WEB_ASSET
+    assert asset is not None
+    cached = await client.get(f"/assets/{asset.name}")
+    assert cached.status_code == 200
+    assert "immutable" in cached.headers["cache-control"]

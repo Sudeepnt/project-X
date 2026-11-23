@@ -52,13 +52,13 @@ Future modules (finance, legal, people…) plug in the same way.
 - [x] M0 Foundation: repo, tooling, CI, local Postgres 18, app skeleton, migrations
 - [x] M1 Spine: identity + tenancy (RLS), ledger, jobs, policy + autonomy + decisions,
       vault, model gateway (Anthropic / OpenAI-compatible / offline), notifications, cockpit
-- [ ] M2 GTM core: brand book + ICP, CRM (stages, statuses, automations, deals),
+- [x] M2 GTM core: brand book + ICP, CRM (stages, statuses, automations, deals),
       tracked links + attribution, landing pages + A/B, goals (diagnosis, feasibility, pacing,
       stop rules), campaign library + selection, content engine (themes, hooks, ratio,
       calendar, generation, checks, repurposing), publishing (adapters, OAuth, queue, limits,
       verification, simulator), inbox, email + sequences + newsletter, analytics + weekly
       report, experiments + learning memory, compliance, media kit
-- [ ] M3 Web cockpit: design system, shell, auth, onboarding, every module screen
+- [x] M3 Web cockpit: design system, shell, auth, onboarding, every module screen
 - [ ] M4 Phase 2/3: Discord bot, ads engine (Meta/Google) with caps, billing + plans + usage,
       unified social API mode, cross-business benchmarks (opt-in)
 - [ ] M5 Hardening: security headers/CSP, rate limits, performance, docs, deploy guide
@@ -66,6 +66,15 @@ Future modules (finance, legal, people…) plug in the same way.
 ## Status log
 
 (Newest first.)
+
+- 2026-11-23 — Web cockpit shipped: design system (light/dark, Apple-style), hand-rolled SVG charts,
+  auth + onboarding, Today, Decisions (edit-then-approve), Goals (live forecast, pace chart), Campaigns,
+  Content (calendar), Channels, Audience (people/funnel/deals/payments), Inbox, Email, Pages & links
+  (A/B results), Analytics, Brand, Settings. Verified in a real browser: 24 screens, 0 console errors,
+  phone layout, approve-with-edit end to end. Also: inbox, compliance, media kit, seed-demo (practice
+  company), A/B experiment results, SPA caching. Dev API port moved to 8010. 74 backend + 11 web tests.
+  Next (M4): ads engine, billing (Dodo), Discord bot, asset library, WhatsApp, benchmarks; then M5
+  Docker + deploy docs.
 
 - 2026-11-23 — GTM backend core loop works end to end in practice mode: content pipeline (plan,
   write, adapt, check, propose), publisher with read-back verification, 10 platform adapters +

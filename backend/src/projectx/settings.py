@@ -25,7 +25,7 @@ class Settings(BaseSettings):
 
     env: Literal["dev", "test", "staging", "prod"] = "dev"
     app_name: str = "Project X"
-    base_url: str = "http://localhost:8000"
+    base_url: str = "http://localhost:8010"
     web_url: str = "http://localhost:5173"
     log_level: str = "INFO"
     log_json: bool = False

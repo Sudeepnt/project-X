@@ -46,9 +46,17 @@ async def test_inbox_triage_escalates_and_drafts(services: Services, founder: An
         assert by_category["spam"]["status"] == "closed"
     assert all(i["contact_id"] for i in inbox["items"] if i["kind"] in ("comment", "dm"))
     async with services.db.tenant(bid) as s:
-        cards = (await s.execute(select(Decision).where(Decision.business_id == bid,
-                                                        Decision.action_type.in_(("gtm.reply_public",
-                                                                                  "gtm.reply_private"))))).scalars().all()
+        cards = (
+            (
+                await s.execute(
+                    select(Decision).where(
+                        Decision.business_id == bid, Decision.action_type.in_(("gtm.reply_public", "gtm.reply_private"))
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
     assert all(c.status == "pending" for c in cards)  # replies wait: nothing earned yet
     target = next((i for i in inbox["items"] if i["status"] == "drafted"), None)
     if target:
@@ -63,12 +71,14 @@ async def test_inbox_triage_escalates_and_drafts(services: Services, founder: An
 async def test_export_and_erase(services: Services, founder: Any, business: dict[str, Any]) -> None:
     bid = uuid.UUID(business["id"])
     email = f"gdpr-{uuid.uuid4().hex[:6]}@example.com"
-    contact = (await founder.post(gtm(business, "/contacts"), json={"email": email, "name": "Erin Erase",
-                                                                     "stage": "lead"})).json()
+    contact = (
+        await founder.post(gtm(business, "/contacts"), json={"email": email, "name": "Erin Erase", "stage": "lead"})
+    ).json()
     export = (await founder.post(gtm(business, "/compliance/requests"), json={"kind": "export", "email": email})).json()
     assert export["status"] == "completed" and "download_url" in export["result"]
-    erase = (await founder.post(gtm(business, "/compliance/requests"),
-                                json={"kind": "erase", "contact_id": contact["id"]})).json()
+    erase = (
+        await founder.post(gtm(business, "/compliance/requests"), json={"kind": "erase", "contact_id": contact["id"]})
+    ).json()
     assert erase["status"] == "completed"
     async with services.db.tenant(bid) as s:
         row = await s.get(Contact, uuid.UUID(contact["id"]))
@@ -78,12 +88,16 @@ async def test_export_and_erase(services: Services, founder: Any, business: dict
     listed = (await founder.get(gtm(business, "/contacts?q=Erin"))).json()
     assert listed["total"] == 0
     async with services.db.session() as s:  # nothing leaked into job payloads either
-        leftovers = (await s.execute(text("select count(*) from jobs where payload::text like :e"), {"e": f"%{email}%"})).scalar()
+        leftovers = (
+            await s.execute(text("select count(*) from jobs where payload::text like :e"), {"e": f"%{email}%"})
+        ).scalar()
     assert leftovers == 0
 
 
 def test_meta_signed_request() -> None:
-    payload = base64.urlsafe_b64encode(orjson.dumps({"algorithm": "HMAC-SHA256", "user_id": "123"})).decode().rstrip("=")
+    payload = (
+        base64.urlsafe_b64encode(orjson.dumps({"algorithm": "HMAC-SHA256", "user_id": "123"})).decode().rstrip("=")
+    )
     sig = base64.urlsafe_b64encode(hmac.new(b"secret", payload.encode(), hashlib.sha256).digest()).decode().rstrip("=")
     assert parse_signed_request(f"{sig}.{payload}", "secret") == {"algorithm": "HMAC-SHA256", "user_id": "123"}
     assert parse_signed_request(f"{sig}.{payload}", "wrong") is None

@@ -28,7 +28,7 @@ db-reset:  ## Drop and recreate the local databases
 migrate:  ## Apply database migrations
 	$(BACKEND) uv run alembic upgrade head
 
-api:  ## Run the API with auto-reload on http://localhost:8000
+api:  ## Run the API with auto-reload on http://localhost:8010
 	$(BACKEND) uv run projectx api --reload
 
 worker:  ## Run background jobs and the scheduler
@@ -49,9 +49,8 @@ fmt:  ## Format the backend
 typecheck:  ## Strict type check of the backend
 	$(BACKEND) uv run mypy src
 
-openapi:  ## Regenerate the web client's API types from the backend
-	$(BACKEND) uv run projectx openapi --output ../web/src/api/openapi.json
-	$(WEB) pnpm run gen:api
+openapi:  ## Write the API schema to docs/openapi.json
+	$(BACKEND) uv run projectx openapi --output ../docs/openapi.json
 
 web-install:  ## Install web dependencies
 	$(WEB) pnpm install
