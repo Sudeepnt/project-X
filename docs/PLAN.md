@@ -67,13 +67,17 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-24 — Hardening: Discord /subscribe and /ask rate-limited per person and per server (stops using the
+  bot to email-bomb strangers with confirmation mails); a periodic prune removes old throttle windows, spent or
+  expired tokens and sessions, and finished jobs (the ledger is never pruned). 111 backend tests.
+
 - 2026-11-23 — M5 deploy and hardening, part 1: one Docker image (non-root, health check, JSON logs) serving the
   API, cockpit and worker; docker-compose stack (Postgres + pgvector with a non-superuser role, migrate job,
   mail catcher); CI builds and smoke-tests the image. S3-compatible storage (encrypted, presigned URLs; AWS S3,
   R2, MinIO) next to local disk. `projectx generate-keys`. Production refuses plain-http web URLs, a dev mail
   host or S3 without a bucket. Security fix: the API trusted X-Forwarded-For from anyone (rate limits could be
   dodged); now only configured proxies. docs/DEPLOY.md and docs/architecture.md. 109 backend tests.
-  Not yet verified locally: Docker isn't installed on the dev Mac; the CI image job is the check.
+  Docker isn't installed on the dev Mac; the CI image job built and smoke-tested the image: green.
 
 - 2026-11-23 — Cross-business benchmarks (M4 complete): opt-in only, and only contributors can see them.
   Weekly rates (engagement, reach per post, posts per week, page conversion, USD cost per lead) are stored

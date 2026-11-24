@@ -263,3 +263,23 @@ async def test_vault_round_trip_binding_and_rotation(services: Services, busines
         assert version == 2
     async with services.db.tenant(bid) as s:
         assert await services.vault.borrow(s, bid, b, purpose="publish", actor="test") == {"access_token": "B"}
+
+
+async def test_prune_removes_only_stale_housekeeping_rows(services: Services) -> None:
+    from sqlalchemy import text
+
+    from projectx.kernel.time import utcnow
+    from projectx.spine.lifecycle import prune
+
+    async with services.db.session() as s:
+        await s.execute(
+            text(
+                "INSERT INTO auth_throttle (key, window_start, count) VALUES "
+                "('prune:old', now() - interval '3 days', 1), ('prune:new', now(), 1) "
+                "ON CONFLICT (key) DO UPDATE SET window_start = EXCLUDED.window_start"
+            )
+        )
+    await prune(services, utcnow())
+    async with services.db.session() as s:
+        keys = set((await s.execute(text("SELECT key FROM auth_throttle WHERE key LIKE 'prune:%'"))).scalars())
+    assert keys == {"prune:new"}

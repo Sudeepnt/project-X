@@ -40,13 +40,13 @@ def _signed(body: dict[str, Any], ts: int | None = None) -> tuple[bytes, dict[st
     return raw, {"x-signature-ed25519": sig, "x-signature-timestamp": stamp, "content-type": "application/json"}
 
 
-def _command(name: str, guild: str = GUILD, **options: str) -> dict[str, Any]:
+def _command(name: str, guild: str = GUILD, user_id: str = "u_42", **options: str) -> dict[str, Any]:
     return {
         "id": uuid.uuid4().hex,
         "type": 2,
         "guild_id": guild,
         "channel_id": "chan_1",
-        "member": {"user": {"id": "u_42", "username": "reader42", "global_name": "Reader"}},
+        "member": {"user": {"id": user_id, "username": "reader42", "global_name": "Reader"}},
         "data": {"name": name, "options": [{"name": k, "type": 3, "value": v} for k, v in options.items()]},
     }
 
@@ -141,3 +141,16 @@ async def test_subscribe_records_consent_evidence_and_double_opt_in(
     latest_raw, latest_headers = _signed(_command("latest"))
     latest = await client.post("/webhooks/discord/interactions", content=latest_raw, headers=latest_headers)
     assert latest.json()["data"]["flags"] == 64
+
+
+async def test_subscribe_is_rate_limited_per_person(
+    services: Services, client: httpx.AsyncClient, founder: Any, business: dict[str, Any], discord: None
+) -> None:
+    """Stops one person using the bot to email-bomb someone with confirmation messages."""
+    await _install(services, client, founder, business)
+    replies = []
+    for i in range(4):
+        raw, headers = _signed(_command("subscribe", user_id="u_spammer", email=f"victim{i}@example.com"))
+        replies.append((await client.post("/webhooks/discord/interactions", content=raw, headers=headers)).json())
+    assert all("confirm" in r["data"]["content"] for r in replies[:3])
+    assert "try again" in replies[3]["data"]["content"]

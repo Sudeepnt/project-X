@@ -119,3 +119,21 @@ async def queue_email(
         {"to": to, "subject": subject, "html": html, "text": text, "reply_to": reply_to, "headers": headers or {}},
         business_id=business_id,
     )
+
+
+@periodic("spine.prune", every=timedelta(hours=6))
+async def prune(services: Services, now: datetime) -> None:
+    """Housekeeping so tables don't grow forever: old throttle windows, spent or expired tokens and sessions,
+    and finished jobs. The ledger and anything a customer can see are never pruned."""
+    from sqlalchemy import text
+
+    statements = (
+        "DELETE FROM auth_throttle WHERE window_start < now() - interval '2 days'",
+        "DELETE FROM email_tokens WHERE expires_at < now() - interval '7 days' OR used_at < now() - interval '7 days'",
+        "DELETE FROM user_sessions WHERE expires_at < now() - interval '1 day'",
+        "DELETE FROM jobs WHERE status = 'succeeded' AND finished_at < now() - interval '14 days'",
+        "DELETE FROM jobs WHERE status = 'dead' AND finished_at < now() - interval '90 days'",
+    )
+    async with services.db.session() as session:
+        for sql in statements:
+            await session.execute(text(sql))

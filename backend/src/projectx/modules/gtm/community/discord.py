@@ -29,13 +29,14 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 
 from projectx.api.deps import OwnerDep
-from projectx.kernel.errors import AppError, ValidationFailed
+from projectx.kernel.errors import AppError, RateLimited, ValidationFailed
 from projectx.modules.gtm.config import gtm_settings
 from projectx.modules.gtm.crm.lifecycle import Cause, ConsentInput, upsert_contact
 from projectx.modules.gtm.growth.landing import confirm_token
 from projectx.modules.gtm.inbox.service import ingest
 from projectx.modules.gtm.models import ChannelAccount, Post
 from projectx.services import Services
+from projectx.spine.identity.security import throttle
 from projectx.spine.identity.service import consume_email_token, issue_email_token
 from projectx.spine.ledger.service import Actor
 from projectx.spine.lifecycle import queue_email
@@ -209,11 +210,20 @@ async def interactions(request: Request) -> JSONResponse:
     data = payload.get("data", {})
     member = payload.get("member") or {}
     user = member.get("user") or payload.get("user") or {}
+    name = data.get("name")
+    limits = {"subscribe": (3, timedelta(hours=1)), "ask": (10, timedelta(hours=1))}  # per person, per hour
+    if name in limits:
+        limit, window = limits[name]
+        try:
+            async with services.db.session() as session:
+                await throttle(session, f"discord:{name}:{guild_id}:{user.get('id')}", limit=limit, window=window)
+                await throttle(session, f"discord:{name}:{guild_id}", limit=limit * 30, window=window)
+        except RateLimited:
+            return _reply("That's a lot of requests. Please try again a little later.")
     async with services.db.tenant(route.business_id) as session:
         business = await session.get(Business, route.business_id)
         if business is None:
             return _reply("This server isn't connected yet.")
-        name = data.get("name")
         if name == "ask":
             return await _ask(session, business, route.target_id, payload, data, user)
         if name == "subscribe":
