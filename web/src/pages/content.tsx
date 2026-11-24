@@ -9,6 +9,7 @@ import {
   Plus,
   RefreshCw,
   RotateCcw,
+  Shuffle,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { ChecksList } from "@/components/decision";
@@ -562,9 +563,85 @@ function NewPost({ bid, open, setOpen }: { bid: string; open: boolean; setOpen: 
   );
 }
 
+function Repurpose({ bid, open, setOpen }: { bid: string; open: boolean; setOpen: (o: boolean) => void }) {
+  const [f, setF] = useState({ title: "", text: "", source_url: "", count: 5 });
+  const run = useAction(
+    () =>
+      api.post<{ job_id: string | null; count: number }>(gpath(bid, "/content/repurpose"), {
+        title: f.title,
+        text: f.text,
+        count: f.count,
+        source_url: f.source_url || null,
+      }),
+    {
+      invalidate: [gpath(bid, "/content")],
+      success: (r) =>
+        r.job_id
+          ? `Splitting into ${r.count} posts. They'll appear in To review shortly.`
+          : "Already split. Check To review.",
+      onSuccess: () => {
+        setOpen(false);
+        setF({ title: "", text: "", source_url: "", count: 5 });
+      },
+    },
+  );
+  const chars = f.text.trim().length;
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent
+        title="Repurpose a long piece"
+        description="Paste an article, transcript or newsletter. We split it into distinct posts, each in your voice, using only what the piece says. You review every one."
+        wide
+      >
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Title">
+              {(id) => <Input id={id} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />}
+            </Field>
+            <Field label="Link to the original (optional)">
+              {(id) => (
+                <Input
+                  id={id}
+                  type="url"
+                  placeholder="https://"
+                  value={f.source_url}
+                  onChange={(e) => setF({ ...f, source_url: e.target.value })}
+                />
+              )}
+            </Field>
+          </div>
+          <Field label="The piece" hint={`${chars.toLocaleString()} characters · at least 400`}>
+            {(id) => (
+              <Textarea id={id} rows={10} value={f.text} onChange={(e) => setF({ ...f, text: e.target.value })} />
+            )}
+          </Field>
+          <div className="flex items-center justify-between gap-4">
+            <label className="flex items-center gap-3 text-[14px]" htmlFor="count">
+              Make
+              <input
+                id="count"
+                type="range"
+                min={2}
+                max={10}
+                value={f.count}
+                onChange={(e) => setF({ ...f, count: Number(e.target.value) })}
+                className="accent-[var(--accent)]"
+              />
+              <span className="w-16 tabular font-medium">{f.count} posts</span>
+            </label>
+            <Button variant="primary" disabled={chars < 400} loading={run.isPending} onClick={() => run.mutate()}>
+              Split into posts
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function Content() {
   const bid = useBid();
-  const search = useSearch({ strict: false }) as { view?: string; item?: string; new?: string };
+  const search = useSearch({ strict: false }) as { view?: string; item?: string; new?: string; repurpose?: string };
   const navigate = useNavigate();
   const view = search.view ?? "calendar";
   const setSearch = (patch: Record<string, string | undefined>) =>
@@ -587,6 +664,9 @@ export function Content() {
                 { value: "library", label: "Library" },
               ]}
             />
+            <Button icon={<Shuffle className="size-4" />} onClick={() => setSearch({ repurpose: "1" })}>
+              Repurpose
+            </Button>
             <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setSearch({ new: "1" })}>
               Write
             </Button>
@@ -602,6 +682,7 @@ export function Content() {
       )}
       <ContentSheet bid={bid} id={search.item ?? null} onClose={() => setSearch({ item: undefined })} />
       <NewPost bid={bid} open={!!search.new} setOpen={(o) => setSearch({ new: o ? "1" : undefined })} />
+      <Repurpose bid={bid} open={!!search.repurpose} setOpen={(o) => setSearch({ repurpose: o ? "1" : undefined })} />
     </div>
   );
 }

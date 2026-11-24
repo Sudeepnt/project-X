@@ -386,6 +386,33 @@ async def import_content(body: ImportIn, ctx: EditorDep) -> dict[str, Any]:
     return {"created": len(created), "content_ids": [str(c) for c in created]}
 
 
+class RepurposeIn(BaseModel):
+    title: str = Field(default="", max_length=200)
+    text: str = Field(min_length=1, max_length=60_000)
+    source_url: str | None = Field(default=None, max_length=2000, pattern=r"^https?://")
+    count: int = Field(default=5, ge=2, le=10)
+    platforms: list[str] | None = Field(default=None, max_length=14)
+    campaign_id: uuid.UUID | None = None
+
+
+@router.post("/content/repurpose", status_code=status.HTTP_202_ACCEPTED)
+async def repurpose_content(body: RepurposeIn, ctx: EditorDep) -> dict[str, Any]:
+    """Turn one long piece into several posts. They arrive for review in a minute or two."""
+    from projectx.modules.gtm.content.repurpose import queue_repurpose
+
+    job_id = await queue_repurpose(
+        ctx.session,
+        ctx.business,
+        title=body.title,
+        text=body.text,
+        source_url=body.source_url,
+        count=body.count,
+        platforms=body.platforms,
+        campaign_id=body.campaign_id,
+    )
+    return {"job_id": str(job_id) if job_id else None, "count": body.count}
+
+
 class FeedsIn(BaseModel):
     feeds: list[str] = Field(max_length=5)
 

@@ -20,6 +20,7 @@ for _name in (
     "projectx.modules.gtm.campaigns.service",
     "projectx.modules.gtm.content.pipeline",
     "projectx.modules.gtm.content.importer",
+    "projectx.modules.gtm.content.repurpose",
     "projectx.modules.gtm.channels.publisher",
     "projectx.modules.gtm.channels.accounts",
     "projectx.modules.gtm.analytics.report",

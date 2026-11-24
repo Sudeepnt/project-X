@@ -67,6 +67,12 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-24 — Repurposing (it was listed under M2 but wasn't actually built): paste an article, transcript or
+  newsletter, choose 2–10 posts; a job splits it into distinct, standalone ideas (a verifier rejects duplicate
+  angles), each written in the brand voice from the source alone, adapted per platform, checked and sent for
+  review, spread one a day. Same piece isn't split twice. Content → Repurpose. Security pass over public
+  endpoints (escaping, sandboxed templates, link destinations, webhook signatures): no issues. 112 backend tests.
+
 - 2026-11-24 — Hardening: Discord /subscribe and /ask rate-limited per person and per server (stops using the
   bot to email-bomb strangers with confirmation mails); a periodic prune removes old throttle windows, spent or
   expired tokens and sessions, and finished jobs (the ledger is never pruned). 111 backend tests.
