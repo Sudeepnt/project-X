@@ -357,7 +357,7 @@ function Newsletter({ bid }: { bid: string }) {
       </Card>
       <div className="space-y-6">
         <Card className="space-y-4 p-5">
-          <h3 className="text-[17px] font-semibold">Newsletter</h3>
+          <h2 className="text-[17px] font-semibold">Newsletter</h2>
           <div className="flex items-center justify-between">
             <span className="text-[14px]">Send automatically</span>
             <Switch
@@ -394,7 +394,7 @@ function Newsletter({ bid }: { bid: string }) {
           </div>
         </Card>
         <Card className="space-y-4 p-5">
-          <h3 className="text-[17px] font-semibold">Sender details</h3>
+          <h2 className="text-[17px] font-semibold">Sender details</h2>
           <Field label="Reply-to email">
             {(id) => (
               <Input

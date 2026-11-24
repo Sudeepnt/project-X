@@ -39,7 +39,7 @@ function Steps({ step }: { step: number }) {
           <span
             className={cn(
               "flex size-6 items-center justify-center rounded-full text-[12px] font-semibold",
-              i < step ? "bg-good text-white" : i === step ? "bg-accent text-white" : "bg-fill text-muted",
+              i < step ? "bg-good text-white" : i === step ? "bg-accent-fill text-white" : "bg-fill text-muted",
             )}
           >
             {i < step ? <Check className="size-3.5" /> : i + 1}

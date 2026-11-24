@@ -12,19 +12,20 @@
   --elevated: #ffffff;
   --text: #1d1d1f;
   --text-2: #424245;
-  --muted: #6e6e73;
-  --faint: #86868b;
+  --muted: #5c5c61;
+  --faint: #6b6b70;
   --hairline: rgb(0 0 0 / 0.08);
   --hairline-strong: rgb(0 0 0 / 0.14);
   --fill: rgb(118 118 128 / 0.12);
   --fill-2: rgb(118 118 128 / 0.08);
-  --accent: #0071e3;
-  --accent-hover: #0077ed;
+  --accent: #0062c4;
+  --accent-hover: #006ad3;
   --accent-soft: rgb(0 113 227 / 0.1);
+  --accent-fill: #0062c4;
   --on-accent: #ffffff;
-  --good: #0a7d0a;
-  --warning: #b25000;
-  --critical: #d03b3b;
+  --good: #066b06;
+  --warning: #974400;
+  --critical: #b42a2a;
   --good-soft: rgb(12 163 12 / 0.12);
   --warning-soft: rgb(250 178 25 / 0.18);
   --critical-soft: rgb(208 59 59 / 0.12);
@@ -46,13 +47,14 @@
   --text: #f5f5f7;
   --text-2: #d2d2d7;
   --muted: #a1a1a6;
-  --faint: #86868b;
+  --faint: #9a9aa0;
   --hairline: rgb(255 255 255 / 0.1);
   --hairline-strong: rgb(255 255 255 / 0.16);
   --fill: rgb(118 118 128 / 0.24);
   --fill-2: rgb(118 118 128 / 0.16);
-  --accent: #0a84ff;
-  --accent-hover: #3395ff;
+  --accent: #5cafff; /* text and links: readable on dark surfaces */
+  --accent-hover: #6bb4ff;
+  --accent-fill: #0a6fd6; /* filled buttons: white text stays readable */
   --accent-soft: rgb(10 132 255 / 0.16);
   --good: #30d158;
   --warning: #ffb340;
@@ -83,6 +85,7 @@
   --color-fill-2: var(--fill-2);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
+  --color-accent-fill: var(--accent-fill);
   --color-good: var(--good);
   --color-warning: var(--warning);
   --color-critical: var(--critical);

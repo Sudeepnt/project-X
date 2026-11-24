@@ -84,7 +84,7 @@ function CapMeter({ a }: { a: AdAccount }) {
         aria-label="Monthly cap used"
       >
         <div
-          className={cn("h-full rounded-full", pct >= 1 ? "bg-critical" : pct > 0.8 ? "bg-warning" : "bg-accent")}
+          className={cn("h-full rounded-full", pct >= 1 ? "bg-critical" : pct > 0.8 ? "bg-warning" : "bg-accent-fill")}
           style={{ width: `${pct * 100}%` }}
         />
       </div>

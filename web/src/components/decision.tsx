@@ -275,7 +275,7 @@ export function DecisionSheet({ bid, id, onClose }: { bid: string; id: string | 
           </dl>
           {d.reasons.length ? (
             <div>
-              <h4 className="mb-2 text-[13px] font-semibold">Why this needs you</h4>
+              <h3 className="mb-2 text-[13px] font-semibold">Why this needs you</h3>
               <ul className="space-y-1 text-[13px] text-text-2">
                 {d.reasons.map((r) => (
                   <li key={r.code}>· {r.message}</li>

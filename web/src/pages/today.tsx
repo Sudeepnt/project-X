@@ -69,12 +69,13 @@ export function GoalSummary({ goal, bid }: { goal: Goal; bid: string }) {
       <div
         className="mt-3 h-2 overflow-hidden rounded-full bg-fill-2"
         role="progressbar"
+        aria-label={`${goal.metric_label} progress`}
         aria-valuenow={Math.round(progress * 100)}
         aria-valuemin={0}
         aria-valuemax={100}
       >
         <div
-          className="h-full rounded-full bg-accent transition-[width] duration-700"
+          className="h-full rounded-full bg-accent-fill transition-[width] duration-700"
           style={{ width: `${progress * 100}%` }}
         />
       </div>

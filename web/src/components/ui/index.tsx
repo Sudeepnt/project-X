@@ -22,7 +22,7 @@ type Variant = "primary" | "secondary" | "ghost" | "danger" | "plain";
 type Size = "sm" | "md" | "lg" | "icon";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-accent text-white hover:brightness-110 active:brightness-95 shadow-[0_1px_2px_rgb(0_0_0/0.1)]",
+  primary: "bg-accent-fill text-white hover:brightness-110 active:brightness-95 shadow-[0_1px_2px_rgb(0_0_0/0.1)]",
   secondary: "bg-fill text-text hover:bg-[color-mix(in_srgb,var(--fill)_160%,transparent)] active:scale-[0.98]",
   ghost: "text-text-2 hover:bg-fill-2 hover:text-text",
   danger: "bg-critical text-white hover:brightness-110",
@@ -160,7 +160,7 @@ export function CardHeader({
   return (
     <div className={cn("flex items-start justify-between gap-4 px-5 pt-5 pb-3", className)}>
       <div className="min-w-0">
-        <h3 className="text-[17px] font-semibold tracking-[-0.02em]">{title}</h3>
+        <h2 className="text-[17px] font-semibold tracking-[-0.02em]">{title}</h2>
         {subtitle ? <p className="mt-0.5 text-[13px] text-muted">{subtitle}</p> : null}
       </div>
       {action}
@@ -265,21 +265,21 @@ export function StatusBadge({ status }: { status: string }) {
 }
 
 const PLATFORM_COLORS: Record<string, string> = {
-  instagram: "#d6249f",
-  facebook: "#1877f2",
+  instagram: "#b81e88",
+  facebook: "#1460c8",
   threads: "#101010",
   tiktok: "#000000",
-  youtube: "#ff0000",
-  linkedin: "#0a66c2",
+  youtube: "#c40000",
+  linkedin: "#0a5cad",
   x: "#000000",
-  pinterest: "#e60023",
-  reddit: "#ff4500",
-  discord: "#5865f2",
-  telegram: "#229ed9",
-  whatsapp: "#25d366",
-  newsletter: "#0071e3",
-  blog: "#6e6e73",
-  email: "#0071e3",
+  pinterest: "#c2001d",
+  reddit: "#c43500",
+  discord: "#4752c4",
+  telegram: "#16729f",
+  whatsapp: "#0f7a3d",
+  newsletter: "#0062c4",
+  blog: "#5c5c61",
+  email: "#0062c4",
 };
 const PLATFORM_SHORT: Record<string, string> = {
   instagram: "IG",

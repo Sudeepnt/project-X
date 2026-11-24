@@ -234,7 +234,7 @@ function ContactSheet({ bid, id, onClose }: { bid: string; id: string | null; on
           </div>
           {c.deals.length ? (
             <div>
-              <h4 className="mb-2 text-[13px] font-semibold">Deals</h4>
+              <h3 className="mb-2 text-[13px] font-semibold">Deals</h3>
               <ul className="space-y-1.5">
                 {c.deals.map((d) => (
                   <li
@@ -253,7 +253,7 @@ function ContactSheet({ bid, id, onClose }: { bid: string; id: string | null; on
           ) : null}
           {c.payments.length ? (
             <div>
-              <h4 className="mb-2 text-[13px] font-semibold">Payments</h4>
+              <h3 className="mb-2 text-[13px] font-semibold">Payments</h3>
               <ul className="space-y-1">
                 {c.payments.map((p) => (
                   <li key={p.id} className="flex justify-between text-[13px]">
@@ -267,7 +267,7 @@ function ContactSheet({ bid, id, onClose }: { bid: string; id: string | null; on
             </div>
           ) : null}
           <div>
-            <h4 className="mb-3 text-[13px] font-semibold">Timeline</h4>
+            <h3 className="mb-3 text-[13px] font-semibold">Timeline</h3>
             <ol className="relative space-y-3 border-l border-hairline pl-4">
               {c.timeline.map((t, i) => (
                 // biome-ignore lint/suspicious/noArrayIndexKey: timeline is append-only
@@ -275,7 +275,11 @@ function ContactSheet({ bid, id, onClose }: { bid: string; id: string | null; on
                   <span
                     className={cn(
                       "absolute top-1.5 -left-[21px] size-2.5 rounded-full ring-2 ring-[var(--elevated)]",
-                      t.type === "stage" ? "bg-accent" : t.type === "message" ? "bg-[var(--series-3)]" : "bg-faint",
+                      t.type === "stage"
+                        ? "bg-accent-fill"
+                        : t.type === "message"
+                          ? "bg-[var(--series-3)]"
+                          : "bg-faint",
                     )}
                   />
                   <div>{describe(t)}</div>
@@ -696,7 +700,7 @@ function Deals({ bid }: { bid: string }) {
             ))}
           </Select>
         ) : (
-          <h3 className="text-[15px] font-semibold">{pipeline.name}</h3>
+          <h2 className="text-[15px] font-semibold">{pipeline.name}</h2>
         )}
         <span className="text-[13px] text-muted tabular">
           {formatMoney(

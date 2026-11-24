@@ -151,7 +151,7 @@ function BusinessTab({ bid }: { bid: string }) {
   return (
     <div className="space-y-6">
       <Card className="p-5">
-        <h3 className="mb-4 text-[16px] font-semibold">Profile</h3>
+        <h2 className="mb-4 text-[16px] font-semibold">Profile</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Name">
             {(id) => <Input id={id} value={f.name ?? ""} onChange={(e) => setF({ ...f, name: e.target.value })} />}
@@ -242,7 +242,7 @@ function BusinessTab({ bid }: { bid: string }) {
         </Row>
       </Card>
       <Card className="p-5">
-        <h3 className="text-[16px] font-semibold">Payments</h3>
+        <h2 className="text-[16px] font-semibold">Payments</h2>
         <p className="mt-1 mb-4 text-[13px] text-muted">
           Connect your payment provider so sales land in the CRM and credit the campaign that earned them. Paste the
           webhook signing secret; we'll give you the URL to add on their side.
@@ -319,7 +319,7 @@ function AutonomyTab({ bid }: { bid: string }) {
   return (
     <div className="space-y-6">
       <Card className="p-5">
-        <h3 className="text-[16px] font-semibold">Money limits</h3>
+        <h2 className="text-[16px] font-semibold">Money limits</h2>
         <p className="mt-1 mb-4 text-[13px] text-muted">
           Hard ceilings. Anything above them always asks you, whatever else is set.{" "}
           {policy ? `Spent today: ${formatMoney(policy.spent_today_minor, policy.currency)}.` : ""}
@@ -564,7 +564,10 @@ function Meter({ label, used, limit }: { label: string; used: number; limit: num
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-fill-2">
         <div
-          className={cn("h-full rounded-full", pct > 0.9 ? "bg-critical" : pct > 0.75 ? "bg-warning" : "bg-accent")}
+          className={cn(
+            "h-full rounded-full",
+            pct > 0.9 ? "bg-critical" : pct > 0.75 ? "bg-warning" : "bg-accent-fill",
+          )}
           style={{ width: `${limit ? pct * 100 : 0}%` }}
         />
       </div>
@@ -633,7 +636,7 @@ function PlanTab({ bid }: { bid: string }) {
     <div className="space-y-6">
       <Card className="p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 className="text-[16px] font-semibold">{u.plan.name} plan</h3>
+          <h2 className="text-[16px] font-semibold">{u.plan.name} plan</h2>
           <span className="text-[14px] text-muted tabular">${u.plan.price_usd_month}/month</span>
         </div>
         {billing?.status === "past_due" ? (
@@ -725,7 +728,7 @@ function PlanTab({ bid }: { bid: string }) {
         </div>
       ) : null}
       <Card className="p-5">
-        <h3 className="text-[16px] font-semibold">AI usage today</h3>
+        <h2 className="text-[16px] font-semibold">AI usage today</h2>
         <div className="mt-4">
           <Meter
             label="Spend (US cents)"
@@ -839,7 +842,7 @@ function ComplianceTab({ bid }: { bid: string }) {
         </Row>
       </Card>
       <Card className="p-5">
-        <h3 className="mb-3 text-[16px] font-semibold">Legal pages</h3>
+        <h2 className="mb-3 text-[16px] font-semibold">Legal pages</h2>
         <ul className="space-y-2 text-[13px]">
           {[
             ...Object.entries(c.legal_pages),

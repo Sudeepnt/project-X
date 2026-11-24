@@ -18,7 +18,7 @@ function AuthLayout({
   footer?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-bg px-4 py-12">
+    <main className="flex min-h-dvh flex-col items-center justify-center bg-bg px-4 py-12">
       <div className="mb-8 flex items-center gap-2.5">
         <img src="/favicon.svg" alt="" className="size-9" />
         <span className="text-[19px] font-semibold tracking-[-0.02em]">Project X</span>
@@ -29,7 +29,7 @@ function AuthLayout({
         <div className="mt-6">{children}</div>
       </div>
       {footer ? <div className="mt-6 text-[14px] text-muted">{footer}</div> : null}
-    </div>
+    </main>
   );
 }
 

@@ -116,10 +116,10 @@ function ListEditor({
 function Section({ title, children, icon }: { title: string; children: ReactNode; icon?: ReactNode }) {
   return (
     <Card className="p-5">
-      <h3 className="mb-4 flex items-center gap-2 text-[16px] font-semibold">
+      <h2 className="mb-4 flex items-center gap-2 text-[16px] font-semibold">
         {icon}
         {title}
-      </h3>
+      </h2>
       <div className="space-y-4">{children}</div>
     </Card>
   );
@@ -365,10 +365,10 @@ function CheckTool({ bid }: { bid: string }) {
   const check = useAction(() => api.post<{ brand: Check; claims: Check }>(gpath(bid, "/brand-book/check"), { text }));
   return (
     <Card className="p-5">
-      <h3 className="mb-1 flex items-center gap-2 text-[16px] font-semibold">
+      <h2 className="mb-1 flex items-center gap-2 text-[16px] font-semibold">
         <Wand2 className="size-4 text-accent" />
         Check any text
-      </h3>
+      </h2>
       <p className="mb-3 text-[13px] text-muted">
         Paste a caption, an email, an ad. We check voice, banned words and claims that need proof.
       </p>
@@ -428,7 +428,7 @@ function Audiences({ bid }: { bid: string }) {
           <Card key={a.id} className="p-5">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <h3 className="text-[16px] font-semibold">{a.name}</h3>
+                <h2 className="text-[16px] font-semibold">{a.name}</h2>
                 <div className="text-[12px] text-muted uppercase">{a.segment}</div>
               </div>
               {a.is_primary ? <Badge tone="accent">Primary</Badge> : null}

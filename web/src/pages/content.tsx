@@ -428,7 +428,7 @@ function ContentSheet({ bid, id, onClose }: { bid: string; id: string | null; on
           />
           {item.posts?.length ? (
             <div>
-              <h4 className="mb-2 text-[13px] font-semibold">Posts</h4>
+              <h3 className="mb-2 text-[13px] font-semibold">Posts</h3>
               <ul className="divide-y divide-[var(--hairline)] rounded-[14px] ring-1 ring-hairline">
                 {item.posts.map((p) => (
                   <li key={p.id} className="flex items-center gap-3 px-4 py-2.5 text-[13px]">

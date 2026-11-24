@@ -65,7 +65,7 @@ function PlaybookCard({
               {recommended}
             </Badge>
           ) : null}
-          <h3 className="text-[16px] font-semibold tracking-[-0.01em]">{p.name}</h3>
+          <h2 className="text-[16px] font-semibold tracking-[-0.01em]">{p.name}</h2>
           <div className="mt-0.5 text-[12px] text-muted capitalize">
             {p.category} · {p.tier} plan
           </div>
@@ -264,7 +264,7 @@ function ActiveCampaigns({ bid, items }: { bid: string; items: Campaign[] }) {
         <Card key={c.id} className="flex flex-col p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <h3 className="truncate text-[16px] font-semibold">{c.name}</h3>
+              <h2 className="truncate text-[16px] font-semibold">{c.name}</h2>
               <div className="text-[12px] text-muted capitalize">
                 {c.role} · {c.category} · {formatDate(c.starts_on)} – {formatDate(c.ends_on)}
               </div>

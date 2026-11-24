@@ -110,7 +110,7 @@ function Detail({ bid, item }: { bid: string; item: Item }) {
           {item.text}
         </div>
         {item.reply_text && done ? (
-          <div className="ml-auto max-w-[85%] rounded-[18px] rounded-tr-[6px] bg-accent px-4 py-3 text-[15px] leading-relaxed text-white">
+          <div className="ml-auto max-w-[85%] rounded-[18px] rounded-tr-[6px] bg-accent-fill px-4 py-3 text-[15px] leading-relaxed text-white">
             {item.reply_text}
             <div className="mt-1 text-[11px] text-white/70">{item.replied_at ? timeAgo(item.replied_at) : "sent"}</div>
           </div>

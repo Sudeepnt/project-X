@@ -215,7 +215,7 @@ function PlatformCard({
       <div className="flex items-start gap-3">
         <PlatformMark platform={p.key} size={36} />
         <div className="min-w-0 flex-1">
-          <h3 className="text-[16px] font-semibold">{p.label}</h3>
+          <h2 className="text-[16px] font-semibold">{p.label}</h2>
           <p className="line-clamp-2 text-[12px] text-muted">{p.best_for}</p>
         </div>
         <Badge tone={posting.tone}>{posting.label}</Badge>

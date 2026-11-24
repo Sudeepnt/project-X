@@ -102,7 +102,7 @@ function BusinessSwitcher({ bid }: { bid: string }) {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger className="flex w-full items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-left hover:bg-fill-2">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-accent text-[14px] font-semibold text-white">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-accent-fill text-[14px] font-semibold text-white">
           {current?.name.slice(0, 1) ?? "·"}
         </span>
         <span className="min-w-0 flex-1">
@@ -183,7 +183,7 @@ function Notifications({ bid }: { bid: string }) {
             >
               <div className="flex items-start gap-2">
                 {!n.read ? (
-                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-accent" />
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-accent-fill" />
                 ) : (
                   <span className="w-1.5" />
                 )}

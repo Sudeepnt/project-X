@@ -271,7 +271,7 @@ function PageSheet({ bid, page, onClose }: { bid: string; page: LandingPage | nu
         ) : null}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="text-[14px] font-semibold">Variants</h4>
+            <h3 className="text-[14px] font-semibold">Variants</h3>
             {page.variants.length < 4 ? (
               <Button size="sm" icon={<Plus className="size-3.5" />} onClick={() => setEditing(nextKey)}>
                 Add variant {nextKey}

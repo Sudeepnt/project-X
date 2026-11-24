@@ -61,11 +61,17 @@ Future modules (finance, legal, people…) plug in the same way.
 - [x] M3 Web cockpit: design system, shell, auth, onboarding, every module screen
 - [x] M4 Phase 2/3: Discord bot, ads engine (Meta/Google) with caps, billing + plans + usage,
       unified social API mode, cross-business benchmarks (opt-in)
-- [ ] M5 Hardening: security headers/CSP, rate limits, performance, docs, deploy guide
+- [x] M5 Hardening: security headers/CSP, rate limits, performance, docs, deploy guide
 
 ## Status log
 
 (Newest first.)
+
+- 2026-11-24 — Accessibility (M5 complete): axe-core audit, WCAG 2.2 AA plus best practices, on all 18 screens in
+  light and dark mode — 203 contrast issues and 4 structural ones found, now zero. Text tokens darkened just enough
+  (muted, faint, warning, success, error), accent split into a text colour and a fill colour so both pass in dark
+  mode, accessible shades for platform marks, card titles as h2 under each page's h1, a main landmark on sign-in,
+  labelled progress bars. Milestones M0–M5 are done.
 
 - 2026-11-24 — A/B lab for posts: start a test on any platform version while a post awaits approval; version B
   (a linked sibling post) joins the same approval card and publishes at the same hour two days later. Every 6 hours

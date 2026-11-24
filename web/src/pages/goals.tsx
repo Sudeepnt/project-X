@@ -293,7 +293,7 @@ function BudgetPlanner({
   return (
     <div className="mt-6 border-t border-hairline pt-5">
       <div className="flex items-center justify-between gap-2">
-        <h4 className="text-[14px] font-semibold">Budget planner</h4>
+        <h3 className="text-[14px] font-semibold">Budget planner</h3>
         <Button size="sm" onClick={() => run.mutate()} loading={run.isPending}>
           {plan ? "Recalculate" : "Compare budgets"}
         </Button>
@@ -573,7 +573,7 @@ export function NewGoal() {
           </Button>
         </Card>
         <Card className="h-fit p-6 lg:sticky lg:top-20">
-          <h3 className="mb-4 text-[17px] font-semibold">Forecast</h3>
+          <h2 className="mb-4 text-[17px] font-semibold">Forecast</h2>
           {forecastError ? (
             <p className="text-[13px] text-critical">{forecastError}</p>
           ) : forecast ? (
@@ -873,7 +873,7 @@ export function GoalDetail() {
         <div className="space-y-6">
           {g.forecast ? (
             <Card className="p-5">
-              <h3 className="mb-4 text-[17px] font-semibold">Forecast</h3>
+              <h2 className="mb-4 text-[17px] font-semibold">Forecast</h2>
               <ForecastPanel f={g.forecast} target={g.target_value} currency={currency} />
             </Card>
           ) : null}
