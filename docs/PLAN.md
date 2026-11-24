@@ -67,6 +67,11 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-24 — Budget planner: likely results at 0–3x a chosen budget and per paid channel, from the same Monte
+  Carlo model as the goal forecast, with the cost of each extra result and a recommended budget (the most before
+  extra results cost twice the first). The forecast now models diminishing returns on ad spend (a half-saturation
+  daily spend per channel) instead of treating money as perfectly linear. Shown when setting a goal. 113 tests.
+
 - 2026-11-24 — Repurposing (it was listed under M2 but wasn't actually built): paste an article, transcript or
   newsletter, choose 2–10 posts; a job splits it into distinct, standalone ideas (a verifier rejects duplicate
   angles), each written in the brand voice from the source alone, adapted per platform, checked and sent for

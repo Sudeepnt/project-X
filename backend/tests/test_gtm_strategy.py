@@ -215,3 +215,35 @@ async def test_planner_never_schedules_inside_the_review_window(
         slots = await planner.plan_slots(s, biz, camp, start_day=late.date(), days=3)
     assert slots, "later days still get content"
     assert all(slot.when >= late + timedelta(hours=1) for slot in slots)
+
+
+async def test_budget_planner_shows_diminishing_returns(founder: Any, business: dict[str, Any]) -> None:
+    from datetime import date, timedelta
+
+    from projectx.modules.gtm.goals.forecast import saturation
+
+    assert saturation(0, "meta") == 1.0 and saturation(400, "meta") == 0.5
+    await founder.post(gtm(business, "/channels/practice"), json={"platform": "instagram", "followers": 5000})
+    deadline = (date.today() + timedelta(days=60)).isoformat()
+    res = await founder.post(
+        gtm(business, "/goals/budget-plan"),
+        json={
+            "type": "demand",
+            "target": 2000,
+            "deadline": deadline,
+            "budget_minor": 3_000_000,
+            "paid_channels": ["meta", "google"],
+        },
+    )
+    assert res.status_code == 200, res.text
+    plan = res.json()
+    p50s = [lv["p50"] for lv in plan["levels"]]
+    assert p50s == sorted(p50s), "more budget never forecasts fewer results"
+    costs = [lv["cost_per_extra_minor"] for lv in plan["levels"] if lv["cost_per_extra_minor"]]
+    assert costs[-1] > costs[0], "each extra result costs more as spend grows"
+    assert {c["channel"] for c in plan["channels"]} == {"meta", "google"}
+    assert 0 < plan["recommended_budget_minor"] <= 9_000_000
+    zero = await founder.post(
+        gtm(business, "/goals/budget-plan"), json={"type": "demand", "target": 10, "deadline": deadline}
+    )
+    assert zero.status_code == 422

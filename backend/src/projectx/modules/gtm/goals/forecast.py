@@ -62,6 +62,17 @@ LANDING_CONVERSION = {
 FOLLOW_RATE = (0.0005, 0.002, 0.008)  # new followers per person reached
 PAID_CPL_USD = {"meta": (1.5, 4.0, 12.0), "google": (4.0, 12.0, 40.0), "linkedin": (20.0, 60.0, 150.0)}
 PAID_CPM_USD = (3.0, 7.0, 15.0)
+# Diminishing returns: the daily spend (USD) at which each extra dollar buys half as much as the first.
+# Small budgets behave linearly; large ones exhaust the cheapest audience first.
+HALF_SATURATION_USD_PER_DAY = {"meta": 400.0, "google": 400.0, "linkedin": 200.0}
+
+
+def saturation(spend_per_day_usd: float, channel: str) -> float:
+    """Multiplier in (0, 1]: 1 at tiny budgets, falling smoothly as daily spend grows."""
+    half = HALF_SATURATION_USD_PER_DAY.get(channel, 300.0)
+    return 1.0 / (1.0 + spend_per_day_usd / half)
+
+
 LEAD_TO_CUSTOMER = {"b2c": (0.005, 0.02, 0.06), "b2b": (0.03, 0.10, 0.25)}
 PIPELINE_CONVERSION = (0.05, 0.15, 0.3)  # share of existing open leads that buy during the goal window
 OUTREACH_REPLY = (0.03, 0.08, 0.15)
@@ -190,7 +201,11 @@ def _simulate_once(rng: random.Random, inp: ForecastInput, days: int) -> tuple[f
 
     if g == "awareness":
         reach = _organic_reach(rng, inp, weeks)
-        paid_reach = (budget_usd / _tri(rng, PAID_CPM_USD) * 1000) if budget_usd else 0.0
+        paid_reach = (
+            budget_usd / _tri(rng, PAID_CPM_USD) * 1000 * saturation(budget_usd / max(days, 1), "meta")
+            if budget_usd
+            else 0.0
+        )
         if m == "reach":
             parts = {**reach, "paid": paid_reach}
         else:
@@ -212,9 +227,8 @@ def _simulate_once(rng: random.Random, inp: ForecastInput, days: int) -> tuple[f
         if budget_usd and inp.paid_channels:
             share = budget_usd / len(inp.paid_channels)
             for channel in inp.paid_channels:
-                parts[f"paid_{channel}"] = share / _tri(
-                    rng, _driver(inp, f"cpl.{channel}", PAID_CPL_USD.get(channel, (3, 8, 25)))
-                )
+                cpl = _tri(rng, _driver(inp, f"cpl.{channel}", PAID_CPL_USD.get(channel, (3, 8, 25))))
+                parts[f"paid_{channel}"] = share / cpl * saturation(share / max(days, 1), channel)
         leads = sum(parts.values())
         if g == "demand":
             return leads, parts
@@ -297,7 +311,10 @@ def _assumptions(inp: ForecastInput) -> list[str]:
     else:
         notes.append("No channels connected yet: organic reach assumes brand-new accounts.")
     if inp.budget_minor and inp.paid_channels:
-        notes.append(f"Paid budget split across {', '.join(inp.paid_channels)}; costs per lead are benchmark ranges.")
+        notes.append(
+            f"Paid budget split across {', '.join(inp.paid_channels)}; costs per lead are benchmark ranges, "
+            "and each extra dollar buys a little less as daily spend grows."
+        )
     if inp.currency.upper() != "USD":
         notes.append(f"Benchmark costs converted at about {_fx(inp):g} {inp.currency.upper()} per USD.")
     return notes

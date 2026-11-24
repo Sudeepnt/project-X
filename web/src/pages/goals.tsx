@@ -57,6 +57,21 @@ const GOAL_TYPES = [
 
 const VERDICT_TONE = { likely: "good", achieved: "good", stretch: "warning", unrealistic: "critical" } as const;
 
+const PART_LABEL: Record<string, string> = {
+  paid_meta: "Meta ads",
+  paid_google: "Google ads",
+  paid_linkedin: "LinkedIn ads",
+  paid: "Ads",
+  existing_pipeline: "Leads already in your pipeline",
+  outreach: "Outreach",
+};
+const PART_MARK: Record<string, string> = {
+  paid_meta: "facebook",
+  paid_google: "youtube",
+  paid_linkedin: "linkedin",
+  paid: "facebook",
+};
+
 export function ForecastPanel({ f, target, currency }: { f: Forecast; target: number; currency: string }) {
   const max = Math.max(f.p90, target) * 1.1 || 1;
   const pct = (v: number) => `${Math.min((v / max) * 100, 100)}%`;
@@ -107,8 +122,8 @@ export function ForecastPanel({ f, target, currency }: { f: Forecast; target: nu
               .map(([k, v]) => ({
                 label: (
                   <>
-                    <PlatformMark platform={k} size={18} />
-                    <span>{platformLabel(k)}</span>
+                    <PlatformMark platform={PART_MARK[k] ?? k} size={18} />
+                    <span>{PART_LABEL[k] ?? platformLabel(k)}</span>
                   </>
                 ),
                 value: v,
@@ -239,6 +254,105 @@ function GoalHero({ goal, bid }: { goal: Goal; bid: string }) {
         </div>
       </Card>
     </Link>
+  );
+}
+
+interface BudgetLevel {
+  budget_minor: number;
+  p10: number;
+  p50: number;
+  p90: number;
+  probability: number;
+  cost_per_extra_minor: number | null;
+}
+interface BudgetPlan {
+  levels: BudgetLevel[];
+  channels: { channel: string; p50: number; cost_per_result_minor: number | null }[];
+  recommended_budget_minor: number;
+  organic_p50: number;
+}
+
+function BudgetPlanner({
+  bid,
+  currency,
+  body,
+  onUse,
+}: {
+  bid: string;
+  currency: string;
+  body: Record<string, unknown>;
+  onUse: (minor: number) => void;
+}) {
+  const [plan, setPlan] = useState<BudgetPlan | null>(null);
+  const run = useAction(
+    () => api.post<BudgetPlan>(gpath(bid, "/goals/budget-plan"), { ...body, paid_channels: ["meta", "google"] }),
+    {
+      onSuccess: setPlan,
+    },
+  );
+  return (
+    <div className="mt-6 border-t border-hairline pt-5">
+      <div className="flex items-center justify-between gap-2">
+        <h4 className="text-[14px] font-semibold">Budget planner</h4>
+        <Button size="sm" onClick={() => run.mutate()} loading={run.isPending}>
+          {plan ? "Recalculate" : "Compare budgets"}
+        </Button>
+      </div>
+      {plan ? (
+        <div className="mt-3 space-y-3">
+          <table className="w-full text-[12px]">
+            <thead>
+              <tr className="text-left text-muted">
+                <th className="py-1 font-medium">Budget</th>
+                <th className="py-1 text-right font-medium">Likely</th>
+                <th className="py-1 text-right font-medium">Each extra</th>
+              </tr>
+            </thead>
+            <tbody className="tabular">
+              {plan.levels.map((lv) => (
+                <tr
+                  key={lv.budget_minor}
+                  className={cn(lv.budget_minor === plan.recommended_budget_minor && "font-semibold text-accent")}
+                >
+                  <td className="py-1">
+                    <button
+                      type="button"
+                      className="hover:underline"
+                      onClick={() => onUse(lv.budget_minor)}
+                      title="Use this budget"
+                    >
+                      {lv.budget_minor ? formatMoney(lv.budget_minor, currency, { compact: true }) : "Organic only"}
+                    </button>
+                  </td>
+                  <td className="py-1 text-right">
+                    {formatNumber(lv.p50)}{" "}
+                    <span className="font-normal text-faint">
+                      ({formatNumber(lv.p10)}–{formatNumber(lv.p90)})
+                    </span>
+                  </td>
+                  <td className="py-1 text-right">
+                    {lv.cost_per_extra_minor
+                      ? formatMoney(Math.round(lv.cost_per_extra_minor / 100) * 100, currency)
+                      : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="text-[12px] text-muted">
+            Highlighted: the most we'd spend before each extra result costs more than twice the first ones. Click a row
+            to use it.
+            {plan.channels[0]?.cost_per_result_minor
+              ? ` Best value: ${plan.channels[0].channel === "meta" ? "Meta" : plan.channels[0].channel === "google" ? "Google" : "LinkedIn"} at about ${formatMoney(Math.round(plan.channels[0].cost_per_result_minor / 100) * 100, currency)} per result.`
+              : ""}
+          </p>
+        </div>
+      ) : (
+        <p className="mt-2 text-[12px] text-muted">
+          See what more or less budget is likely to buy, from the same model as the forecast.
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -469,6 +583,20 @@ export function NewGoal() {
               Enter a target to see how likely it is, given your channels and history.
             </p>
           )}
+          {forecast && budgetMinor > 0 ? (
+            <BudgetPlanner
+              bid={bid}
+              currency={currency}
+              body={{
+                type: form.type,
+                metric: metric?.key,
+                target: Number(form.target),
+                deadline: form.deadline,
+                budget_minor: budgetMinor,
+              }}
+              onUse={(minor) => setForm({ ...form, budget: String(minor / (currency === "JPY" ? 1 : 100)) })}
+            />
+          ) : null}
         </Card>
       </div>
     </div>

@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 
 from projectx.api.deps import AdminDep, BusinessDep, EditorDep
-from projectx.kernel.errors import Conflict, NotFound
+from projectx.kernel.errors import Conflict, NotFound, ValidationFailed
 from projectx.modules.gtm.brand.check import brand_check, claims_check, find_claims
 from projectx.modules.gtm.brand.service import approve_book, audience_view, book_view, current_book, latest_draft
 from projectx.modules.gtm.campaigns.library import CATEGORIES, get_playbook, playbooks
@@ -305,6 +305,31 @@ async def forecast_goal(body: ForecastIn, ctx: BusinessDep) -> dict[str, Any]:
         channels=body.channels,
     )
     return {"metric": metric, **forecast(inp).as_dict()}
+
+
+@router.post("/goals/budget-plan")
+async def budget_plan(body: ForecastIn, ctx: BusinessDep) -> dict[str, Any]:
+    """Likely results at several budgets and per paid channel, from the same model the goal uses."""
+    from projectx.modules.gtm.goals.planner import plan_budget
+
+    if body.budget_minor <= 0:
+        raise ValidationFailed("Enter the budget you're considering")
+    metric = body.metric or DEFAULT_METRIC[body.type]
+    inp = await build_forecast_input(
+        ctx.session,
+        ctx.business,
+        goal_type=body.type,
+        metric=metric,
+        target=body.target,
+        deadline=body.deadline,
+        budget_minor=0,
+        channels=body.channels,
+    )
+    return {
+        "metric": metric,
+        "currency": ctx.business.currency,
+        **plan_budget(inp, budget_minor=body.budget_minor, channels=[str(c) for c in body.paid_channels or []]),
+    }
 
 
 @router.get("/goals")
