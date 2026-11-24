@@ -75,6 +75,7 @@ async def adapter_context(
 async def schedule_posts(ctx: ExecutionContext) -> ExecutionResult:
     edits: dict[str, Any] = ctx.payload.get("edits") or {}
     scheduled: list[str] = []
+    touched: set[uuid.UUID] = set()
     async with ctx.services.db.tenant(ctx.business_id) as session:
         item = await session.get(ContentItem, uuid.UUID(ctx.payload["content_id"]))
         if item is None:
@@ -94,7 +95,7 @@ async def schedule_posts(ctx: ExecutionContext) -> ExecutionResult:
                     id=uuid7(),
                     business_id=ctx.business_id,
                     variant_id=variant.id,
-                    content_id=item.id,
+                    content_id=variant.content_id,  # an A/B version B lives on its own sibling item
                     account_id=variant.account_id,
                     campaign_id=item.campaign_id,
                     platform=variant.platform,
@@ -110,6 +111,7 @@ async def schedule_posts(ctx: ExecutionContext) -> ExecutionResult:
             if post_id is None:
                 continue
             variant.status = "scheduled"
+            touched.add(variant.content_id)
             await enqueue(
                 session,
                 "gtm.publish",
@@ -132,8 +134,11 @@ async def schedule_posts(ctx: ExecutionContext) -> ExecutionResult:
                 },
             )
             scheduled.append(str(post_id))
-        item.status = "scheduled" if scheduled else item.status
-        item.approved_at = item.approved_at or utcnow()
+        for content_id in touched | ({item.id} if scheduled else set()):
+            scheduled_item = item if content_id == item.id else await session.get(ContentItem, content_id)
+            if scheduled_item is not None:
+                scheduled_item.status = "scheduled"
+                scheduled_item.approved_at = scheduled_item.approved_at or utcnow()
     return ExecutionResult(
         data={"post_ids": scheduled}, undo_payload={"post_ids": scheduled}, summary=f"{len(scheduled)} posts scheduled"
     )

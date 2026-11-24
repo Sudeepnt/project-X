@@ -67,6 +67,13 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-24 — A/B lab for posts: start a test on any platform version while a post awaits approval; version B
+  (a linked sibling post) joins the same approval card and publishes at the same hour two days later. Every 6 hours
+  results are evaluated as engagement per person reached; a winner needs 300+ reach on each and a 95% chance of
+  being better, else "no clear winner" after 14 days. Results are labelled indicative and the winning opening is
+  saved to memory for future planning. Analytics → A/B tests; Analytics tabs now follow the URL. Fix: the publish
+  executor marked only the main post as scheduled. 114 backend tests. All GTM v1 extras now exist.
+
 - 2026-11-24 — Budget planner: likely results at 0–3x a chosen budget and per paid channel, from the same Monte
   Carlo model as the goal forecast, with the cost of each extra result and a recommended budget (the most before
   extra results cost twice the first). The forecast now models diminishing returns on ad spend (a half-saturation

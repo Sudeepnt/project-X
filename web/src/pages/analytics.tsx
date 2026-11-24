@@ -1,8 +1,9 @@
-import { Link, useParams } from "@tanstack/react-router";
+import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { ArrowLeft, ExternalLink, FileBarChart, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { Bars, LineChart, StatTile } from "@/components/charts";
 import {
+  Badge,
   Button,
   Card,
   CardHeader,
@@ -18,6 +19,7 @@ import {
   TabsTrigger,
 } from "@/components/ui";
 import { api } from "@/lib/api";
+import { cn } from "@/lib/cn";
 import { formatCompact, formatDate, formatMoney, formatNumber, formatPercent, sentence } from "@/lib/format";
 import { gpath, useAction, useApi, useBid, useMe } from "@/lib/queries";
 import { LoadError, Loading } from "./system";
@@ -412,11 +414,84 @@ function Benchmarks({ bid }: { bid: string }) {
   );
 }
 
+interface ExperimentRow {
+  id: string;
+  name: string;
+  hypothesis: string;
+  status: string;
+  winner: string | null;
+  min_samples: number;
+  result: { prob_best?: Record<string, number>; rates?: Record<string, number | null>; leader?: string | null };
+  variants: { key: string; label: string; reach: number; engagements: number }[];
+  started_at: string;
+}
+
+function Experiments({ bid }: { bid: string }) {
+  const { data, isLoading } = useApi<{ items: ExperimentRow[]; min_reach: number; confidence: number }>(
+    gpath(bid, "/experiments"),
+  );
+  if (isLoading || !data) return <Loading />;
+  if (!data.items.length) {
+    return (
+      <Card>
+        <EmptyState
+          title="No tests yet"
+          body="Open a post that's waiting for review and choose A/B test on any platform. Version B posts at the same hour two days later, and the winner shapes what's planned next."
+        />
+      </Card>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      {data.items.map((e) => (
+        <Card key={e.id} className="p-5">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="truncate text-[15px] font-semibold">{e.name}</div>
+              {e.hypothesis ? <div className="text-[13px] text-muted">{e.hypothesis}</div> : null}
+            </div>
+            <Badge tone={e.winner ? "good" : e.status === "running" ? "accent" : "neutral"}>
+              {e.winner ? `Version ${e.winner} won` : e.status === "running" ? "Collecting results" : "No clear winner"}
+            </Badge>
+          </div>
+          <ul className="mt-4 space-y-3">
+            {e.variants.map((v) => {
+              const rate = e.result.rates?.[v.key];
+              const chance = e.result.prob_best?.[v.key];
+              return (
+                <li key={v.key} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_160px] sm:items-center">
+                  <div className="min-w-0 text-[13px]">
+                    <span className={cn("mr-2 font-semibold", e.winner === v.key && "text-good")}>{v.key}</span>
+                    <span className="text-text-2">{v.label}</span>
+                  </div>
+                  <div className="text-right text-[12px] tabular">
+                    <div className="font-medium">{rate != null ? formatPercent(rate, 1) : "—"} engagement</div>
+                    <div className="text-muted">
+                      {formatCompact(v.reach)} reached{chance != null ? ` · ${formatPercent(chance, 0)} best` : ""}
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="mt-3 text-[11px] text-faint">
+            Indicative: versions post on different days. A winner needs {data.min_reach.toLocaleString()} people reached
+            on each and a {formatPercent(data.confidence, 0)} chance of being better.
+          </p>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 export function Analytics() {
   const bid = useBid();
   const currency = useCurrency(bid);
   const [days, setDays] = useState("30");
-  const [tab, setTab] = useState("overview");
+  const search = useSearch({ strict: false }) as { tab?: string };
+  const navigate = useNavigate();
+  const tab = search.tab ?? "overview";
+  const setTab = (v: string) => navigate({ to: ".", search: { tab: v } as never, replace: true });
   const { data, isLoading, error, refetch } = useApi<Overview>(gpath(bid, `/analytics/overview?days=${days}`));
   const attribution = useApi<Attribution>(gpath(bid, "/analytics/attribution?days=90"));
   const d = data;
@@ -443,6 +518,7 @@ export function Analytics() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="working">What's working</TabsTrigger>
           <TabsTrigger value="reports">Weekly reviews</TabsTrigger>
+          <TabsTrigger value="experiments">A/B tests</TabsTrigger>
           <TabsTrigger value="benchmarks">Benchmarks</TabsTrigger>
         </TabsList>
         <TabsContent value="overview">
@@ -531,6 +607,9 @@ export function Analytics() {
         </TabsContent>
         <TabsContent value="working">
           <Working bid={bid} days={Number(days)} />
+        </TabsContent>
+        <TabsContent value="experiments">
+          <Experiments bid={bid} />
         </TabsContent>
         <TabsContent value="benchmarks">
           <Benchmarks bid={bid} />

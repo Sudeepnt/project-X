@@ -23,6 +23,7 @@ interface PreviewVariant {
   title?: string;
   thread?: string[];
   spec?: { brand?: CheckT; specs?: CheckT; ai_label?: string };
+  ab?: "B";
 }
 
 /** Turn a forecast into readable rows: `*_minor` values are money, `currency` is a unit, not a row. */
@@ -309,6 +310,7 @@ export function DecisionSheet({ bid, id, onClose }: { bid: string; id: string | 
                   <div className="flex items-center gap-2 px-4 py-2.5 hairline-b">
                     <PlatformMark platform={v.platform} />
                     <span className="text-[13px] font-medium">{platformLabel(v.platform)}</span>
+                    {v.ab ? <Badge tone="accent">Version B · posts 2 days later</Badge> : null}
                     <span className="text-[12px] text-muted">{sentence(v.format)}</span>
                     {aiLabelText(v.spec?.ai_label) ? (
                       <Badge className="ml-auto">{aiLabelText(v.spec?.ai_label)}</Badge>

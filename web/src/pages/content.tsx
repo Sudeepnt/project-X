@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  FlaskConical,
   ImagePlus,
   PenLine,
   Plus,
@@ -36,7 +37,7 @@ import { api } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { formatDateTime, formatNumber, sentence } from "@/lib/format";
 import { gpath, useAction, useApi, useBid } from "@/lib/queries";
-import type { Campaign, ContentItem, PlatformInfo, Post } from "@/lib/types";
+import type { Campaign, ContentItem, PlatformInfo, Post, Variant } from "@/lib/types";
 import { LoadError, Loading } from "./system";
 
 interface CalendarData {
@@ -211,6 +212,19 @@ function ContentSheet({ bid, id, onClose }: { bid: string; id: string | null; on
     { invalidate: inv, success: "Saved", onSuccess: () => setTexts({}) },
   );
   const [pickingFor, setPickingFor] = useState<string | null>(null);
+  const [testing, setTesting] = useState<Variant | null>(null);
+  const [textB, setTextB] = useState("");
+  const startTest = useAction(
+    () => api.post(gpath(bid, "/experiments"), { content_id: id, platform: testing?.platform, text_b: textB }),
+    {
+      invalidate: [...inv, gpath(bid, "/experiments")],
+      success: "Version B added. Approve the post and both go out, two days apart.",
+      onSuccess: () => {
+        setTesting(null);
+        setTextB("");
+      },
+    },
+  );
   const setMedia = useAction(
     ({
       vid,
@@ -294,7 +308,17 @@ function ContentSheet({ bid, id, onClose }: { bid: string; id: string | null; on
                 <PlatformMark platform={v.platform} />
                 <span className="text-[13px] font-medium">{v.platform_label}</span>
                 <span className="text-[12px] text-muted">{v.format_label}</span>
-                <span className="ml-auto">
+                <span className="ml-auto flex items-center gap-2">
+                  {item.status === "needs_review" && item.source_type !== "ab_test" ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      icon={<FlaskConical className="size-3.5" />}
+                      onClick={() => setTesting(v)}
+                    >
+                      A/B test
+                    </Button>
+                  ) : null}
                   <StatusBadge status={v.status} />
                 </span>
               </div>
@@ -353,6 +377,39 @@ function ContentSheet({ bid, id, onClose }: { bid: string; id: string | null; on
               ) : null}
             </div>
           ))}
+          <Dialog open={!!testing} onOpenChange={(o) => !o && setTesting(null)}>
+            {testing ? (
+              <DialogContent
+                title={`A/B test on ${testing.platform_label}`}
+                description="Write a different version. It posts at the same hour two days later, and we compare engagement per person reached. A winner is called only with clear evidence."
+                wide
+              >
+                <div className="space-y-3">
+                  <div className="rounded-[12px] bg-fill-2 p-3 text-[13px] text-text-2">
+                    <div className="mb-1 font-medium text-text">Version A</div>
+                    {testing.text}
+                  </div>
+                  <Textarea
+                    aria-label="Version B"
+                    rows={6}
+                    placeholder="Version B: try a different opening, angle or call to action"
+                    value={textB}
+                    onChange={(e) => setTextB(e.target.value)}
+                  />
+                  <div className="flex justify-end">
+                    <Button
+                      variant="primary"
+                      disabled={!textB.trim() || textB.trim() === testing.text.trim()}
+                      loading={startTest.isPending}
+                      onClick={() => startTest.mutate()}
+                    >
+                      Start test
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            ) : null}
+          </Dialog>
           <MediaPicker
             bid={bid}
             open={!!pickingFor}
