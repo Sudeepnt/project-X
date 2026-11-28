@@ -30,6 +30,7 @@ MODULE_PACKAGES = (
     "projectx.modules.finance",
     "projectx.modules.ops",
     "projectx.modules.people",
+    "projectx.modules.legal",
 )
 
 

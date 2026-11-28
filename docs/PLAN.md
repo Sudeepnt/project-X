@@ -67,6 +67,16 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-28 — Departments part 4: Legal and admin (`modules/legal`). Won deal → service agreement drafted from the
+  template with the deal's facts; signing is a manual task, and once signed its notice and end dates become reminders.
+  Hired → employment agreement and NDA drafted, and a set-up task for every standard account; leaving → a removal
+  task for every access held and a prompt to reassign anything they owned. Escalated invoice → a formal demand drafted
+  (sending waits for a person). Daily: software, domains and certificates are announced to Finance before renewal
+  (Finance books the bill and proposes paying it, once per renewal), contracts roll over or expire, and each quarter a
+  person reviews access. Uploaded contracts: obligations kept only when quoted from the contract and still ahead.
+  Migration `0013`. 159 backend tests. Note: `test_connect_flow_stores_tokens_in_the_vault` failed once in a full run
+  and passed in four reruns; not yet explained.
+
 - 2026-11-28 — Departments part 3: People (`modules/people`). Hiring sets first-day and probation reminders and
   announces `people.employee.hired` (Legal and Admin react); a last day announces leaving; the daily round moves
   people to active or left. Leave counts working days and is checked by code against the yearly allowance and team

@@ -651,7 +651,7 @@ async def on_renewal(ctx: BusContext) -> dict[str, Any] | None:
             amount_minor=int(ctx.data["cost_minor"]),
             currency=ctx.data.get("currency") or business.currency,
             due_date=date.fromisoformat(ctx.data["renews_on"]),
-            notes=f"Renewal of {ctx.data.get('name', 'a subscription')}.",
+            notes=f"Renewal of {ctx.data.get('label', 'a subscription')}.",
             cause=ctx.cause,
         )
         if created:
