@@ -199,6 +199,7 @@ async def create_invoice(
     subtotal = sum(line["amount_minor"] for line in clean)
     if subtotal <= 0:
         raise ValidationFailed("An invoice needs a positive amount")
+    await session.refresh(settings, with_for_update=True)  # one number at a time: no two invoices share one
     tax = tax_of(subtotal, settings.tax_rate_bp)
     number = f"{settings.invoice_prefix}{settings.next_invoice_no:05d}"
     settings.next_invoice_no += 1

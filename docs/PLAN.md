@@ -67,6 +67,15 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-28 — Departments part 2: Operations (`modules/ops`). Won deal → delivery project from a plan (deal
+  attributes can carry tasks and `billing: milestones`; milestone shares sum exactly to the deal value) and a kickoff
+  call booked in the first free slot (invite on a decision card). Completing a billable milestone hands it to Finance,
+  which invoices it. Tickets: an open model sorts kind, priority and sentiment (SLA from priority, watched every 15
+  minutes); replies only from a published help article and only when the quoted sentence is really in it; feature
+  requests and bugs go to Product; when Product ships an item, everyone who asked gets a drafted "it's live" reply.
+  Long-unpaid invoice → that customer's projects go on hold. Contact erasure (GTM) clears ticket text through the bus.
+  Fixed: invoice numbers are allocated under a row lock. Migration `0011`. 151 backend tests.
+
 - 2026-11-28 — Departments that work together, part 1: the bus and Finance. `spine/bus.py`: departments subscribe to
   ledger event types; appending an event queues one delivery per subscriber in the same transaction (exactly once,
   linked back through correlation/causation, chains capped at 40), and every handoff is logged in
