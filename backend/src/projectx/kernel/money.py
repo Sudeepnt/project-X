@@ -85,3 +85,8 @@ class Money:
 def micro_usd_to_usd(micro: int) -> Decimal:
     """Model-call costs are tracked in micro-dollars (1e-6 USD) to stay integral."""
     return Decimal(micro).scaleb(-6)
+
+
+def format_money(amount_minor: int, currency: str) -> str:
+    """A minor-unit amount as text, e.g. 150000 INR -> "INR 1,500.00"."""
+    return Money(int(amount_minor), currency).format()

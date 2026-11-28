@@ -359,7 +359,7 @@ async def plan_wakeups(session: AsyncSession, business: Business, user_id: uuid.
         if at > now - timedelta(minutes=5):
             await _ensure(session, business.id, user_id, at, "brief", "Morning brief", f"brief:{user_id}:{day}")
             break
-    day_end = datetime.combine(local.date(), time(23, 59), tzinfo=tz).astimezone(UTC)
+    day_end = now + timedelta(hours=24)  # checks before every meeting in the next day, today or overnight
     meetings = (
         await session.execute(
             select(CalendarEvent).where(

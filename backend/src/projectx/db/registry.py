@@ -23,11 +23,17 @@ MODEL_MODULES = (
     "projectx.spine.calendar.models",
     "projectx.spine.assistant.models",
     "projectx.spine.context.models",
+    "projectx.spine.bus",
 )
+
+
+DEPARTMENT_MODELS = ("projectx.modules.finance.models",)
 
 
 def load_all_models() -> None:
     for name in MODEL_MODULES:
+        importlib.import_module(name)
+    for name in DEPARTMENT_MODELS:
         importlib.import_module(name)
     try:
         importlib.import_module("projectx.modules.gtm.models")

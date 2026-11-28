@@ -67,6 +67,20 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-28 — Departments that work together, part 1: the bus and Finance. `spine/bus.py`: departments subscribe to
+  ledger event types; appending an event queues one delivery per subscriber in the same transaction (exactly once,
+  linked back through correlation/causation, chains capped at 40), and every handoff is logged in
+  `department_handoffs`. Finance module (`modules/finance`): chart of accounts and balanced double-entry journal
+  (idempotent per source), invoices with integer tax maths, P&L, balance sheet and runway from journal lines only.
+  It reacts on its own: won deal → invoice drafted and proposed; payment recorded → matched to the oldest open invoice
+  (remainder booked as a cash sale); billable milestone, approved payroll and subscription renewals → bills. Daily:
+  overdue invoices get one reminder per step, are handed to Legal after 30 days, and a closed tax period becomes a
+  manual filing task and then a payment proposal. Money out and tax filing always wait for a person. Migration `0010`.
+  146 backend tests. Department plan (17 blueprint modules grouped): GTM (brand, content, marketing, PR, sales),
+  Operations (support, delivery), Finance (billing, accounting, tax), People (payroll, HR), Legal and admin (contracts,
+  IT, security), Product, Strategy (steering, network, handshake); contact platforms (WhatsApp, Gmail, Outlook) as a
+  shared layer.
+
 - 2026-11-28 — Our own memory, an always-on assistant, and open models first. Context store (`spine.context`):
   preferences, people, facts, routines and promises in PostgreSQL with full history (a change supersedes, never
   overwrites; forgetting wipes every version), visible and editable at `/context`. Every assistant message is learned

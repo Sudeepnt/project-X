@@ -169,6 +169,9 @@ async def append(
     head.last_seq = seq
     head.last_hash = digest
     await session.flush()
+    from projectx.spine.bus import dispatch  # departments react to events (see spine/bus.py)
+
+    await dispatch(session, event)
     return event
 
 
