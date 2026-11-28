@@ -27,7 +27,7 @@ MODEL_MODULES = (
 )
 
 
-DEPARTMENT_MODELS = ("projectx.modules.finance.models", "projectx.modules.ops.models")
+DEPARTMENT_MODELS = ("projectx.modules.finance.models", "projectx.modules.ops.models", "projectx.modules.people.models")
 
 
 def load_all_models() -> None:

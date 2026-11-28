@@ -121,7 +121,10 @@ def evaluate(inp: PolicyInput) -> PolicyVerdict:
     level = inp.earned_level
     for reason in caps:
         level = min(level, reason.cap)
-    binding = tuple(r for r in caps if r.cap < inp.earned_level)
+    # A constraint explains the card when it lowered the level. Broken rules are always shown, even when the
+    # action would have waited anyway, so the person deciding sees why it needs care.
+    violation_codes = {v.code for v in inp.violations}
+    binding = tuple(r for r in caps if r.cap < inp.earned_level or r.code in violation_codes)
     return PolicyVerdict(Level(level), binding)
 
 

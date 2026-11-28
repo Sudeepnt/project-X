@@ -25,7 +25,12 @@ if TYPE_CHECKING:
 
 log = structlog.get_logger("modules")
 
-MODULE_PACKAGES = ("projectx.modules.gtm", "projectx.modules.finance", "projectx.modules.ops")
+MODULE_PACKAGES = (
+    "projectx.modules.gtm",
+    "projectx.modules.finance",
+    "projectx.modules.ops",
+    "projectx.modules.people",
+)
 
 
 @dataclass

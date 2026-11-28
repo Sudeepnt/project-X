@@ -67,6 +67,14 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-28 — Departments part 3: People (`modules/people`). Hiring sets first-day and probation reminders and
+  announces `people.employee.hired` (Legal and Admin react); a last day announces leaving; the daily round moves
+  people to active or left. Leave counts working days and is checked by code against the yearly allowance and team
+  cover; broken rules show on the approval card (policy engine now always lists violations). Payroll on the payroll
+  day: pro rata by calendar days, unpaid leave by working days, one configurable withholding rate, all integers; a
+  person approves; Finance books salaries, withholding and the net liability and proposes the payment (money out
+  waits again); when Finance pays, People emails payslips. Migration `0012`. 154 backend tests.
+
 - 2026-11-28 — Departments part 2: Operations (`modules/ops`). Won deal → delivery project from a plan (deal
   attributes can carry tasks and `billing: milestones`; milestone shares sum exactly to the deal value) and a kickoff
   call booked in the first free slot (invite on a decision card). Completing a billable milestone hands it to Finance,
