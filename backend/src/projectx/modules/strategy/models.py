@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import date
 from typing import Any
 
@@ -35,3 +36,15 @@ class Review(IdMixin, TenantMixin, TimestampMixin, Base):
     risks: Mapped[list[Any]] = mapped_column(default=list)
     objectives: Mapped[list[Any]] = mapped_column(default=list)
     summary: Mapped[str] = mapped_column(String(2000), default="")
+
+
+class SimulationRun(IdMixin, TenantMixin, TimestampMixin, Base):
+    """A question asked of the simulation, the settings it ran with, and what came out."""
+
+    __tablename__ = "strategy_simulations"
+
+    asked: Mapped[str] = mapped_column(String(2000), default="")
+    question: Mapped[dict[str, Any]] = mapped_column(default=dict)
+    result: Mapped[dict[str, Any]] = mapped_column(default=dict)
+    summary: Mapped[str] = mapped_column(String(2000), default="")
+    created_by: Mapped[uuid.UUID | None]

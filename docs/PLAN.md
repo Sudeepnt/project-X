@@ -67,6 +67,17 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-28 — Simulation (base, to be tuned): `modules/strategy/simulation.py`. Calibrates from every department
+  (won deals in 90 days → Poisson rate and lognormal size; open pipeline with stage odds and expected close; MRR and
+  a Beta-prior churn rate; collection rate from invoice history; payroll, software and other costs with their wobble;
+  cash and receivables), applies a scenario (price with a stated elasticity, deal flow, churn, hires with sales ramp,
+  marketing with square-root diminishing returns, cost cuts, cash injection), runs 2,000 seeded futures month by month,
+  and returns p10/p50/p90 per month, goal probabilities (total revenue, monthly revenue, MRR, cash floor), chance and
+  timing of running out of cash, scenario next to baseline, and every assumption with its source. Plain questions
+  (`POST /strategy/simulate/ask`) are turned into settings by an open model or an offline parser; the answer is written
+  by code. Runs are stored. Parameters to decide together: price elasticity (-0.5), marketing return per 100k (0.5
+  deals), salesperson ramp (3 months, 1 deal/month), collection delay (1 month). Migration `0017`. 175 backend tests.
+
 - 2026-11-28 — Own keys or ours, for every tool (`spine/integrations`). A catalog of tools (Stripe, Razorpay, SMTP,
   open-model server, Claude) with their fields; per business: own keys (validated, tested with a live call, sealed in
   the vault, only last four shown), the platform's, or off; `resolve()` is the one call every department uses.

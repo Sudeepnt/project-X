@@ -12,8 +12,10 @@ from sqlalchemy import select
 
 from projectx.api.deps import BusinessDep, OwnerDep
 from projectx.kernel.errors import NotFound, ValidationFailed
+from projectx.modules.strategy import ask as asking
 from projectx.modules.strategy import service as strategy
-from projectx.modules.strategy.models import Objective, Review
+from projectx.modules.strategy import simulation as sim
+from projectx.modules.strategy.models import Objective, Review, SimulationRun
 
 router = APIRouter(prefix="/api/v1/b/{business_id}/strategy", tags=["strategy"])
 
@@ -55,3 +57,53 @@ async def drop_objective(objective_id: uuid.UUID, ctx: OwnerDep) -> None:
 async def reviews(ctx: BusinessDep) -> dict[str, Any]:
     rows = (await ctx.session.execute(select(Review).order_by(Review.created_at.desc()).limit(26))).scalars()
     return {"items": [strategy.review_view(r) for r in rows]}
+
+
+class AskIn(BaseModel):
+    text: str = Field(min_length=3, max_length=2000)
+
+
+@router.get("/simulate/baseline")
+async def baseline(ctx: BusinessDep) -> dict[str, Any]:
+    """What the simulation believes about the business today, and where each number came from."""
+    b = await sim.calibrate(ctx.session, ctx.business)
+    return {"currency": b.currency, "assumptions": [a.__dict__ for a in b.assumptions]}
+
+
+@router.post("/simulate")
+async def simulate(body: sim.Question, ctx: BusinessDep) -> dict[str, Any]:
+    """Run exact settings: the scenario next to doing nothing, with goal probabilities."""
+    return await asking.run(ctx.services, ctx.business_id, ctx.user.id, body)
+
+
+@router.post("/simulate/ask")
+async def simulate_ask(body: AskIn, ctx: BusinessDep) -> dict[str, Any]:
+    """Ask in plain words: "what if I hire two salespeople?", "will we hit 10 lakh revenue by March?"."""
+    return await asking.ask(ctx.services, ctx.business_id, ctx.user.id, body.text)
+
+
+@router.get("/simulations")
+async def simulations(ctx: BusinessDep) -> dict[str, Any]:
+    rows = (
+        await ctx.session.execute(select(SimulationRun).order_by(SimulationRun.created_at.desc()).limit(50))
+    ).scalars()
+    return {
+        "items": [
+            {
+                "id": str(r.id),
+                "asked": r.asked,
+                "summary": r.summary,
+                "question": r.question,
+                "created_at": r.created_at.isoformat(),
+            }
+            for r in rows
+        ]
+    }
+
+
+@router.get("/simulations/{run_id}")
+async def simulation(run_id: uuid.UUID, ctx: BusinessDep) -> dict[str, Any]:
+    r = await ctx.session.get(SimulationRun, run_id)
+    if r is None:
+        raise NotFound("Simulation not found")
+    return {"id": str(r.id), "asked": r.asked, "summary": r.summary, "question": r.question, **r.result}
