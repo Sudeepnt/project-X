@@ -67,6 +67,19 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-28 — Our own memory, an always-on assistant, and open models first. Context store (`spine.context`):
+  preferences, people, facts, routines and promises in PostgreSQL with full history (a change supersedes, never
+  overwrites; forgetting wipes every version), visible and editable at `/context`. Every assistant message is learned
+  from in the background by an open model; code keeps a note only if the person's own words are quoted as evidence
+  and it isn't a secret; promises become follow-up reminders. Prompts get pinned notes plus the most relevant, bounded.
+  Always on: per-person settings (brief time, days, quiet hours, channels, nudge cap); the assistant plans its own
+  wakeups (morning brief, 30 minutes before meetings, midday, end of day, and right after a calendar sync changes busy
+  time), computes signals from records (clashes, unapproved invites for meetings within a day, overdue reminders,
+  promises, waiting decisions), says each once, stays quiet otherwise without calling a model, and delivers in-app and
+  by email (other channels register a deliverer). An open model may smooth the wording only if every time and number
+  is unchanged. Gateway: a `hard` rung for Claude; Anthropic models are refused for any job not marked hard.
+  Migration `0009`. 142 backend tests.
+
 - 2026-11-28 — The assistant (spine, backend only): `POST /assistant/messages` turns plain words ("move my 3pm to
   Friday and remind me to send the deck") into checked actions on the calendar and reminders. Built on Reflexion
   (Shinn et al., NeurIPS 2023): the model plans (Actor); plain code checks the plan against real records (Evaluator:

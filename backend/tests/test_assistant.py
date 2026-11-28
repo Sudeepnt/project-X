@@ -15,8 +15,8 @@ from projectx.kernel.time import utcnow
 from projectx.services import Services
 from projectx.spine.assistant.service import Plan
 from projectx.spine.calendar.models import CalendarEvent
+from projectx.spine.context.models import ContextEntry
 from projectx.spine.gateway.contracts import ModelRequest, ModelResult
-from projectx.spine.memory.models import MemoryCase
 from projectx.spine.twin.models import Contact
 
 IST = ZoneInfo("Asia/Kolkata")
@@ -120,9 +120,9 @@ async def test_failed_checks_lead_to_reflection_and_a_corrected_plan(
     bid = uuid.UUID(business["id"])
     async with services.db.tenant(bid) as s:
         events = (await s.execute(select(CalendarEvent))).scalars().all()
-        lessons = (await s.execute(select(MemoryCase).where(MemoryCase.kind == "assistant_lesson"))).scalars().all()
+        lessons = (await s.execute(select(ContextEntry).where(ContextEntry.key.like("reflection.%")))).scalars().all()
     assert [e.title for e in events] == ["Pitch review"] and events[0].source == "agent"
-    assert [(c.title, c.weight) for c in lessons] == [("Learned while working", 0.5)]
+    assert [(c.kind, c.confidence, c.pinned) for c in lessons] == [("preference", 0.6, False)]
 
 
 async def test_busy_slot_offers_alternatives_and_it_asks_instead_of_guessing(

@@ -71,6 +71,8 @@ def load_modules() -> list[Module]:
         import projectx.spine.assistant.service
         import projectx.spine.calendar.service
         import projectx.spine.calendar.sync
+        import projectx.spine.context.proactive
+        import projectx.spine.context.store
         import projectx.spine.decisions.jobs
         import projectx.spine.events
         import projectx.spine.lifecycle  # noqa: F401

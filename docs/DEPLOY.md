@@ -60,8 +60,12 @@ unsafe values (development keys, plain-http URLs, no real mail server, S3 withou
 
 **AI models** (without keys the app uses deterministic offline drafts)
 
-`PX_ANTHROPIC_API_KEY`; `PX_LLM_SMALL`, `PX_LLM_MID`, `PX_LLM_FRONTIER` as `provider:model`, e.g.
-`anthropic:claude-haiku-5-5`, `anthropic:claude-sonnet-5-5`, `anthropic:claude-opus-5-5`.
+Open-weight models do the everyday work; Claude does only hard jobs. Point `PX_OPENAI_COMPAT_BASE_URL` at any
+OpenAI-compatible server (vLLM, Ollama, or a hosted open-model provider) and set `PX_LLM_SMALL`, `PX_LLM_MID`,
+`PX_LLM_FRONTIER` to `openai:<model>`. Set `PX_ANTHROPIC_API_KEY` and `PX_LLM_HARD=anthropic:claude-opus-5-5` for
+hard jobs (code requests them with `hard=True`). `PX_LLM_CLAUDE_FOR_HARD_ONLY=true` (default) makes the gateway
+refuse an anthropic model for any other job, even if a rung is set to one. Memory never leaves the database: each call
+sends only the few notes it needs, and providers keep nothing between calls.
 `PX_LLM_DEFAULT_DAILY_CAP_USD` bounds spend per business per day on top of each plan's cap.
 
 **Platforms** (each is optional; unset ones show "not configured" in Channels)

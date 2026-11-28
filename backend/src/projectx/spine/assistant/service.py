@@ -5,6 +5,7 @@ See the package docstring for how this maps onto Reflexion (Actor, Evaluator, Se
 
 from __future__ import annotations
 
+import contextlib
 import re
 import uuid
 from dataclasses import dataclass, field
@@ -23,16 +24,17 @@ from projectx.spine.assistant.models import AssistantTurn
 from projectx.spine.calendar import service as cal
 from projectx.spine.calendar.models import CalendarEvent, Reminder
 from projectx.spine.calendar.timing import Interval, overlaps
+from projectx.spine.context import store as context_store
 from projectx.spine.gateway.contracts import ChatMessage, GatewayError, ModelRequest, Rung
 from projectx.spine.gateway.offline import offline_generator
+from projectx.spine.jobs.queue import enqueue
 from projectx.spine.ledger.events import EventData, register_event
 from projectx.spine.ledger.service import Actor, append
-from projectx.spine.memory.service import as_prompt_notes, recall, remember
 from projectx.spine.tenancy.models import Business
 from projectx.spine.twin.models import Contact
 
 MAX_TRIALS = 3  # the paper converges within a handful of trials; each retry climbs one model rung
-LESSONS = 3  # bounded long-term memory (the paper keeps 1 to 3 reflections in the prompt)
+KNOWN = 12  # bounded long-term memory in each prompt: pinned notes first, then the most relevant
 RECENT_TURNS = 6
 RUNGS: tuple[Rung, ...] = ("small", "mid", "frontier")
 ACTOR = Actor.agent("assistant")
@@ -314,16 +316,12 @@ async def handle_message(
                 )
             ).scalars()
         )
-        lessons = await recall(session, business_id, query=text, shelf="facts", kind="assistant_lesson", limit=LESSONS)
-        if len(lessons) < LESSONS:
-            seen = {c.id for c in lessons}
-            extra = await recall(session, business_id, shelf="facts", kind="assistant_lesson", limit=LESSONS)
-            lessons += [c for c in extra if c.id not in seen][: LESSONS - len(lessons)]
+        known = await context_store.recall_for(session, business_id, user_id, text, limit=KNOWN)
+        notes = context_store.as_prompt(known)
         state = _state_block(ctx, recent)
         session.expunge_all()  # detached copies: no transaction stays open while the model thinks
 
     local_now = ctx.now.astimezone(zone(business.timezone))
-    notes = as_prompt_notes(lessons).replace("Lessons from this business's history:", "What this person taught you:")
     system = _SYSTEM.format(
         business=business.name,
         now=local_now.strftime("%Y-%m-%d %H:%M"),
@@ -424,29 +422,35 @@ async def _finish(
         )
         session.add(turn)
         await session.flush()
+        lessons: list[tuple[str, str, float, bool]] = []
         if plan.corrects_previous and plan.lesson.strip():
-            await remember(
-                session,
-                ctx.business.id,
-                shelf="facts",
-                kind="assistant_lesson",
-                title="How they say it",
-                lesson=plan.lesson.strip()[:500],
-                situation={"turn_id": str(turn.id)},
-                tags=["assistant"],
-            )
+            lessons.append(("lesson", plan.lesson.strip(), 0.95, True))  # corrections are pinned: always in view
         elif status == "done" and reflections:
-            # A plan that only worked after reflecting is worth remembering, at lower weight.
-            await remember(
+            # A plan that only worked after reflecting is worth keeping, with less confidence.
+            lessons.append(("reflection", reflections[-1]["reflection"], 0.6, False))
+        for prefix, lesson, confidence, pinned in lessons:
+            with contextlib.suppress(ValidationFailed):
+                await context_store.save(
+                    session,
+                    ctx.business.id,
+                    user_id=user_id,
+                    kind="preference",
+                    key=f"{prefix}." + "_".join(context_store.normalize_key(lesson).split("_")[:6]),
+                    value=lesson[:500],
+                    source="assistant",
+                    evidence=text[:500],
+                    confidence=confidence,
+                    pinned=pinned,
+                    actor=ACTOR,
+                )
+        if user_id is not None:
+            # Learn anything durable from what they said (preferences, people, promises), in the background.
+            await enqueue(
                 session,
-                ctx.business.id,
-                shelf="facts",
-                kind="assistant_lesson",
-                title="Learned while working",
-                lesson=reflections[-1]["reflection"][:500],
-                situation={"turn_id": str(turn.id)},
-                tags=["assistant", "reflection"],
-                weight=0.5,
+                "spine.context.learn",
+                {"user_id": str(user_id), "text": text, "source": channel},
+                business_id=ctx.business.id,
+                idempotency_key=f"learn:{turn.id}",
             )
         await append(
             session,

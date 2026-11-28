@@ -74,6 +74,7 @@ class ModelGateway:
             "mid": parse_rung(settings.llm_mid),
             "frontier": parse_rung(settings.llm_frontier),
         }
+        self._hard = parse_rung(settings.llm_hard)
         self._providers: dict[str, Provider] = providers if providers is not None else self._build_providers(settings)
         self._cap_resolver = cap_resolver
         self._cache_ttl = timedelta(hours=settings.llm_cache_ttl_hours)
@@ -90,10 +91,21 @@ class ModelGateway:
 
     def describe(self) -> dict[str, Any]:
         """What each rung points at, for the settings screen. No secrets."""
-        return {
-            rung: {"provider": provider, "model": model, "available": provider in self._providers}
+        out: dict[str, Any] = {
+            rung: {
+                "provider": provider,
+                "model": model,
+                "available": provider in self._providers and self._allowed(provider, hard=False),
+            }
             for rung, (provider, model) in self._rungs.items()
         }
+        provider, model = self._hard
+        out["hard"] = {"provider": provider, "model": model, "available": provider in self._providers}
+        return out
+
+    def _allowed(self, provider: str, *, hard: bool) -> bool:
+        """Claude only for hard jobs: enforced here, whatever the rungs are set to."""
+        return hard or provider != "anthropic" or not self._settings.llm_claude_for_hard_only
 
     def set_cap_resolver(self, resolver: CapResolver) -> None:
         self._cap_resolver = resolver
@@ -132,9 +144,13 @@ class ModelGateway:
         start, stop = RUNG_ORDER.index(req.rung), RUNG_ORDER.index(req.max_rung)
         chain: list[tuple[Rung, str, str]] = []
         seen: set[tuple[str, str]] = set()
+        if req.hard and self._hard[0] in self._providers:
+            # A hard job starts on the hard model; open models stay behind it as the fallback.
+            chain.append(("frontier", *self._hard))
+            seen.add(self._hard)
         for rung in RUNG_ORDER[start : stop + 1]:
             provider, model = self._rungs[rung]
-            if provider in self._providers and (provider, model) not in seen:
+            if provider in self._providers and self._allowed(provider, hard=req.hard) and (provider, model) not in seen:
                 chain.append((rung, provider, model))
                 seen.add((provider, model))
         if not chain:

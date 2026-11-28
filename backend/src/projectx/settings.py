@@ -57,6 +57,12 @@ class Settings(BaseSettings):
     llm_small: str = "offline:draft-small"
     llm_mid: str = "offline:draft-mid"
     llm_frontier: str = "offline:draft-frontier"
+    # Hard jobs only (coding, long multi-step reasoning): a request must set `hard=True` to reach this rung.
+    # Recommended: small/mid/frontier on open-weight models behind an OpenAI-compatible server (vLLM, Ollama),
+    # and llm_hard = "anthropic:claude-opus-5-5".
+    llm_hard: str = "offline:draft-hard"
+    # When true, Anthropic models are used only for hard jobs, even if a normal rung names one.
+    llm_claude_for_hard_only: bool = True
     anthropic_api_key: SecretStr | None = None
     openai_compat_base_url: str | None = None
     openai_compat_api_key: SecretStr | None = None

@@ -142,3 +142,26 @@ async def test_daily_cap_stops_spending(settings: Settings, services: Services, 
             ),
         )
     assert provider.calls == []
+
+
+async def test_claude_only_for_hard_jobs(settings: Settings, services: Services, business: dict[str, Any]) -> None:
+    s = settings.model_copy(
+        update={
+            "llm_small": "openai:qwen-small",
+            "llm_mid": "anthropic:claude-sonnet-5-5",  # misconfigured on purpose: must never be used for normal work
+            "llm_frontier": "openai:open-large",
+            "llm_hard": "anthropic:claude-opus-5-5",
+        }
+    )
+    open_models = FakeProvider("openai", {"qwen-small": "plain", "open-large": "plain"})
+    claude = FakeProvider("anthropic", {"claude-opus-5-5": "hard answer", "claude-sonnet-5-5": "nope"})
+    gw = ModelGateway(s, services.db, providers={"openai": open_models, "anthropic": claude})  # type: ignore[dict-item]
+    chain = gw._chain(ModelRequest(task="t", system="", messages=[], rung="small", max_rung="frontier"))
+    assert [(p, m) for _, p, m in chain] == [("openai", "qwen-small"), ("openai", "open-large")]
+    hard = gw._chain(ModelRequest(task="t", system="", messages=[], hard=True))
+    assert next((p, m) for _, p, m in hard) == ("anthropic", "claude-opus-5-5")
+    assert ("anthropic", "claude-sonnet-5-5") in [(p, m) for _, p, m in hard]  # allowed only because the job is hard
+    bid = uuid.UUID(business["id"])
+    out = await gw.run(bid, ModelRequest(task="code.fix", system="", messages=[ChatMessage("user", "x")], hard=True))
+    assert out.text == "hard answer" and claude.calls == ["claude-opus-5-5"]
+    assert gw.describe()["mid"]["available"] is False and gw.describe()["hard"]["available"] is True

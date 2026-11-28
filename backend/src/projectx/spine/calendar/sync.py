@@ -403,6 +403,18 @@ async def sync_connection(ctx: JobContext) -> dict[str, Any]:
         c = await session.get(CalendarConnection, connection_id)
         if c is not None:
             c.last_synced_at, c.status, c.last_error = utcnow(), "connected", None
+            if c.connected_by is not None:
+                # Busy time changed: have the assistant look for new clashes with what's booked here.
+                from projectx.spine.context.proactive import wake_soon
+
+                fingerprint = hashlib.sha256(repr(sorted(busy)).encode()).hexdigest()[:16]
+                await wake_soon(
+                    session,
+                    business_id,
+                    c.connected_by,
+                    reason="Calendar changed",
+                    key=f"sync:{connection_id}:{fingerprint}",
+                )
     return {"busy_blocks": len(busy)}
 
 

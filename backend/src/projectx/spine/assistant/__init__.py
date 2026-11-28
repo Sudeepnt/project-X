@@ -10,9 +10,10 @@ The design follows Reflexion (Shinn et al., NeurIPS 2023):
   right one, so the checks are strict.
 - Self-reflection: when checks fail, the model gets its plan and the failures, writes what it
   misread, and tries again (up to three trials, climbing a model rung each time).
-- Memory: the last few turns are short-term memory. When the person corrects it ("no, I meant the
-  Friday after"), the lesson is stored and the three most relevant lessons go into every future
-  prompt, the paper's bounded long-term memory.
+- Memory: the last few turns are short-term memory. Long-term memory is our own context store
+  (``spine.context``): corrections ("no, I meant the Friday after") are saved and pinned, everything
+  durable a person says is learned in the background, and each prompt gets a bounded set of the most
+  relevant notes. No model provider keeps any of it.
 
 Anything outward (inviting people) still waits on a decision card from the policy engine.
 """

@@ -31,6 +31,8 @@ class ModelRequest:
     rung: Rung = "small"
     max_rung: Rung = "frontier"
     cache: bool = True
+    # Hard jobs (coding, long multi-step reasoning) may use the "hard" model; everything else stays on open models.
+    hard: bool = False
     # Structured inputs. Logged with the call and used by the offline provider.
     context: dict[str, Any] = field(default_factory=dict)
     # Returns a problem description when the answer is not good enough; the router then climbs.
