@@ -48,9 +48,11 @@ class Mailer:
         reply_to: str | None = None,
         headers: dict[str, str] | None = None,
         attachments: list[Attachment] | None = None,
+        server: dict[str, Any] | None = None,
     ) -> str:
+        """`server`: a business's own SMTP settings (host, port, username, password, from_address, starttls)."""
         message = EmailMessage()
-        sender_name, sender_email = parseaddr(from_addr or self._s.email_from)
+        sender_name, sender_email = parseaddr(from_addr or (server or {}).get("from_address") or self._s.email_from)
         message["From"] = formataddr((sender_name, sender_email))
         message["To"] = to
         message["Subject"] = subject
@@ -66,6 +68,19 @@ class Mailer:
         for a in attachments or []:
             maintype, _, subtype = a.mime.partition("/")
             message.add_attachment(a.data, maintype=maintype, subtype=subtype, filename=a.filename, params=a.params)
+        if server:
+            port = int(server.get("port") or 587)
+            await aiosmtplib.send(
+                message,
+                hostname=server["host"],
+                port=port,
+                username=server.get("username") or None,
+                password=server.get("password") or None,
+                start_tls=str(server.get("starttls", True)).lower() not in ("false", "0", "no") and port != 465,
+                use_tls=port == 465,
+                timeout=30,
+            )
+            return message_id
         await aiosmtplib.send(
             message,
             hostname=self._s.smtp_host,

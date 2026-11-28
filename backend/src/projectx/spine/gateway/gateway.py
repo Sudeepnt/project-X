@@ -13,6 +13,7 @@ import hashlib
 import time
 import uuid
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -58,6 +59,19 @@ def parse_rung(spec: str) -> tuple[str, str]:
     return provider, model
 
 
+@dataclass
+class Route:
+    """Which models one business uses: the platform's, or its own server and keys."""
+
+    rungs: dict[Rung, tuple[str, str]]
+    hard: tuple[str, str]
+    providers: dict[str, Provider]
+
+
+RouteResolver = Callable[[uuid.UUID], Awaitable["Route | None"]]
+ROUTE_TTL_S = 60.0
+
+
 class ModelGateway:
     def __init__(
         self,
@@ -77,6 +91,8 @@ class ModelGateway:
         self._hard = parse_rung(settings.llm_hard)
         self._providers: dict[str, Provider] = providers if providers is not None else self._build_providers(settings)
         self._cap_resolver = cap_resolver
+        self._route_resolver: RouteResolver | None = None
+        self._routes: dict[uuid.UUID, tuple[float, Route | None]] = {}
         self._cache_ttl = timedelta(hours=settings.llm_cache_ttl_hours)
 
     @staticmethod
@@ -105,10 +121,28 @@ class ModelGateway:
 
     def _allowed(self, provider: str, *, hard: bool) -> bool:
         """Claude only for hard jobs: enforced here, whatever the rungs are set to."""
-        return hard or provider != "anthropic" or not self._settings.llm_claude_for_hard_only
+        is_claude = provider == "anthropic" or provider.endswith("_anthropic")
+        return hard or not is_claude or not self._settings.llm_claude_for_hard_only
 
     def set_cap_resolver(self, resolver: CapResolver) -> None:
         self._cap_resolver = resolver
+
+    def set_route_resolver(self, resolver: RouteResolver) -> None:
+        self._route_resolver = resolver
+
+    def forget_route(self, business_id: uuid.UUID) -> None:
+        """Call when a business changes its model keys."""
+        self._routes.pop(business_id, None)
+
+    async def _route(self, business_id: uuid.UUID) -> Route | None:
+        if self._route_resolver is None:
+            return None
+        cached = self._routes.get(business_id)
+        if cached and cached[0] > time.monotonic():
+            return cached[1]
+        route = await self._route_resolver(business_id)
+        self._routes[business_id] = (time.monotonic() + ROUTE_TTL_S, route)
+        return route
 
     async def spent_today_micro_usd(self, business_id: uuid.UUID) -> int:
         start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -140,17 +174,20 @@ class ModelGateway:
         )
         return hashlib.sha256(material).hexdigest()
 
-    def _chain(self, req: ModelRequest) -> list[tuple[Rung, str, str]]:
+    def _chain(self, req: ModelRequest, route: Route | None = None) -> list[tuple[Rung, str, str]]:
         start, stop = RUNG_ORDER.index(req.rung), RUNG_ORDER.index(req.max_rung)
+        rungs = route.rungs if route else self._rungs
+        hard = route.hard if route else self._hard
+        providers = {**self._providers, **(route.providers if route else {})}
         chain: list[tuple[Rung, str, str]] = []
         seen: set[tuple[str, str]] = set()
-        if req.hard and self._hard[0] in self._providers:
+        if req.hard and hard[0] in providers:
             # A hard job starts on the hard model; open models stay behind it as the fallback.
-            chain.append(("frontier", *self._hard))
-            seen.add(self._hard)
+            chain.append(("frontier", *hard))
+            seen.add(hard)
         for rung in RUNG_ORDER[start : stop + 1]:
-            provider, model = self._rungs[rung]
-            if provider in self._providers and self._allowed(provider, hard=req.hard) and (provider, model) not in seen:
+            provider, model = rungs[rung]
+            if provider in providers and self._allowed(provider, hard=req.hard) and (provider, model) not in seen:
                 chain.append((rung, provider, model))
                 seen.add((provider, model))
         if not chain:
@@ -160,7 +197,8 @@ class ModelGateway:
     async def run(
         self, business_id: uuid.UUID, req: ModelRequest, *, correlation_id: uuid.UUID | None = None
     ) -> ModelResult:
-        chain = self._chain(req)
+        route = await self._route(business_id)
+        chain = self._chain(req, route)
         request_hash = self._request_hash(req, chain)
 
         if req.cache:
@@ -196,7 +234,7 @@ class ModelGateway:
         rate_limited_for: float | None = None
         problems: list[str] = []
         for attempt, (rung, provider_name, model) in enumerate(chain, start=1):
-            provider = self._providers[provider_name]
+            provider = (route.providers.get(provider_name) if route else None) or self._providers[provider_name]
             started = time.perf_counter()
             try:
                 resp = await provider.complete(model=model, req=req)

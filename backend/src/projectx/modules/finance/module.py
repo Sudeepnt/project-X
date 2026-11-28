@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from projectx.modules.finance import books, service
 from projectx.modules.finance.api import router
+from projectx.modules.finance.payments import public_router
 from projectx.spine.modules import Module, register_module
 from projectx.spine.tenancy.models import Business
 
@@ -26,6 +27,7 @@ MODULE = register_module(
         title="Finance",
         description="Billing and collections, double-entry accounting, and tax.",
         routers=[router],
+        public_routers=[public_router],
         on_business_created=_created,
         daily_cycle=service.daily,
         on_manual_task_done=service.tax_filed,

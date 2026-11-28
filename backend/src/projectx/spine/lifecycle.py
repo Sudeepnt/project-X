@@ -87,15 +87,21 @@ async def weekly_cycle(ctx: JobContext) -> dict[str, Any] | None:
 async def send_email(ctx: JobContext) -> dict[str, Any] | None:
     from sqlalchemy import text
 
+    from projectx.spine.integrations.service import mail_server
+
     p = ctx.payload
-    message_id = await ctx.services.mailer.send(
-        to=p["to"],
-        subject=p["subject"],
-        html=p["html"],
-        text=p["text"],
-        reply_to=p.get("reply_to"),
-        headers=p.get("headers"),
-    )
+    server = await mail_server(ctx.services, ctx.business_id)  # the business's own domain, if it set one up
+    fields: dict[str, Any] = {
+        "to": p["to"],
+        "subject": p["subject"],
+        "html": p["html"],
+        "text": p["text"],
+        "reply_to": p.get("reply_to"),
+        "headers": p.get("headers"),
+    }
+    if server:  # only passed when set, so test doubles and older mailers keep working
+        fields["server"] = server
+    message_id = await ctx.services.mailer.send(**fields)
     # The payload held an address and possibly a one-time link: drop it once delivered.
     async with ctx.services.db.session() as session:
         await session.execute(text("UPDATE jobs SET payload = '{}'::jsonb WHERE id = :id"), {"id": ctx.job_id})

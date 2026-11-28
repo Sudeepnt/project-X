@@ -67,6 +67,16 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-28 — Own keys or ours, for every tool (`spine/integrations`). A catalog of tools (Stripe, Razorpay, SMTP,
+  open-model server, Claude) with their fields; per business: own keys (validated, tested with a live call, sealed in
+  the vault, only last four shown), the platform's, or off; `resolve()` is the one call every department uses.
+  Stripe: own keys, or "ours" through Stripe Connect (Express account per business, onboarding link, money lands in the
+  founder's account, optional platform fee, events routed by account id). Invoices and reminders carry a lasting pay
+  link (HMAC-signed; opens a fresh Checkout for what is still owed); plans with subscribe links; Stripe events
+  (checkout, invoice.paid, subscription changes, refunds, account.updated) are verified and booked, a link payment is
+  applied to its own invoice. A business's own model server and Claude key replace the platform's for that business
+  only (Claude still only for hard jobs); its own SMTP sends its mail. Migration `0016`. 170 backend tests.
+
 - 2026-11-28 — Departments part 6: Strategy and Network. Strategy (`modules/strategy`): a company overview from every
   department's `numbers`, objectives measured on those numbers (met as soon as reached, missed only after the due
   date), cross-department risk rules in plain code (runway, cash against payroll, overdue receivables, late replies,

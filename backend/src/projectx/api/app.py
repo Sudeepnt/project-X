@@ -28,6 +28,7 @@ from projectx.spine.calendar.api import public_router as calendar_public_router
 from projectx.spine.calendar.api import router as calendar_router
 from projectx.spine.context.api import router as context_router
 from projectx.spine.identity.api import router as identity_router
+from projectx.spine.integrations.api import router as integrations_router
 from projectx.spine.modules import load_modules
 from projectx.spine.tenancy.api import router as tenancy_router
 
@@ -92,6 +93,7 @@ def create_app(settings: Settings | None = None, services: Services | None = Non
     app.include_router(calendar_public_router)
     app.include_router(assistant_router)
     app.include_router(context_router)
+    app.include_router(integrations_router)
     for module in loaded:
         for router in module.routers:
             app.include_router(router)

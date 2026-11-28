@@ -16,6 +16,7 @@ from projectx.kernel.time import today_in
 from projectx.modules.finance import books
 from projectx.modules.finance import service as fin
 from projectx.modules.finance.models import Bill, Invoice, TaxFiling
+from projectx.modules.finance.payments import CustomerSubscription, Plan, cancel_subscription, pay_url, subscribe_url
 from projectx.spine.ledger.service import Actor
 
 router = APIRouter(prefix="/api/v1/b/{business_id}/finance", tags=["finance"])
@@ -163,3 +164,89 @@ async def balance_sheet(ctx: BusinessDep) -> dict[str, Any]:
 async def runway(ctx: BusinessDep) -> dict[str, Any]:
     await books.setup(ctx.session, ctx.business)
     return await books.runway(ctx.session, today_in(ctx.business.timezone))
+
+
+class PlanIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    amount_minor: int = Field(gt=0)
+    interval: str = Field(default="month", pattern="^(month|year)$")
+    currency: str | None = Field(default=None, min_length=3, max_length=3)
+
+
+def _plan_view(ctx: BusinessDep, p: Plan) -> dict[str, Any]:
+    return {
+        "id": str(p.id),
+        "name": p.name,
+        "amount_minor": p.amount_minor,
+        "currency": p.currency,
+        "interval": p.interval,
+        "active": p.active,
+        "subscribe_url": subscribe_url(ctx.services, ctx.business_id, p.id),
+    }
+
+
+@router.get("/plans")
+async def plans(ctx: BusinessDep) -> dict[str, Any]:
+    rows = (await ctx.session.execute(select(Plan).order_by(Plan.amount_minor))).scalars()
+    return {"items": [_plan_view(ctx, p) for p in rows]}
+
+
+@router.post("/plans", status_code=201)
+async def add_plan(body: PlanIn, ctx: OwnerDep) -> dict[str, Any]:
+    p = Plan(
+        business_id=ctx.business_id,
+        name=body.name,
+        amount_minor=body.amount_minor,
+        interval=body.interval,
+        currency=(body.currency or ctx.business.currency).upper(),
+    )
+    ctx.session.add(p)
+    await ctx.session.flush()
+    return _plan_view(ctx, p)
+
+
+@router.post("/plans/{plan_id}/retire")
+async def retire_plan(plan_id: uuid.UUID, ctx: OwnerDep) -> dict[str, Any]:
+    p = await ctx.session.get(Plan, plan_id)
+    if p is None:
+        raise NotFound("Plan not found")
+    p.active = False  # existing subscribers keep it; nobody new can subscribe
+    return _plan_view(ctx, p)
+
+
+@router.get("/subscriptions")
+async def subscriptions(ctx: BusinessDep) -> dict[str, Any]:
+    rows = (
+        await ctx.session.execute(
+            select(CustomerSubscription).order_by(CustomerSubscription.created_at.desc()).limit(500)
+        )
+    ).scalars()
+    return {
+        "items": [
+            {
+                "id": str(s.id),
+                "plan_id": str(s.plan_id) if s.plan_id else None,
+                "contact_id": str(s.contact_id) if s.contact_id else None,
+                "status": s.status,
+                "current_period_end": s.current_period_end.isoformat() if s.current_period_end else None,
+            }
+            for s in rows
+        ]
+    }
+
+
+@router.post("/subscriptions/{subscription_id}/cancel")
+async def cancel(subscription_id: uuid.UUID, ctx: OwnerDep) -> dict[str, Any]:
+    sub = await ctx.session.get(CustomerSubscription, subscription_id, with_for_update=True)
+    if sub is None:
+        raise NotFound("Subscription not found")
+    await cancel_subscription(ctx.services, ctx.business_id, sub)
+    return {"id": str(sub.id), "status": sub.status}
+
+
+@router.get("/invoices/{invoice_id}/pay-link")
+async def invoice_pay_link(invoice_id: uuid.UUID, ctx: BusinessDep) -> dict[str, str]:
+    inv = await ctx.session.get(Invoice, invoice_id)
+    if inv is None:
+        raise NotFound("Invoice not found")
+    return {"url": pay_url(ctx.services, ctx.business_id, inv.id)}

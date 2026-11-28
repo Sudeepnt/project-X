@@ -114,6 +114,10 @@ class Settings(BaseSettings):
     google_client_id: str | None = None
     google_client_secret: SecretStr | None = None
     google_ads_developer_token: SecretStr | None = None
+    # Stripe for the businesses' own customers. "Ours" = Stripe Connect: each business gets a connected account.
+    stripe_secret_key: SecretStr | None = None
+    stripe_connect_webhook_secret: SecretStr | None = None
+    stripe_application_fee_bp: int = 0  # the platform's cut of each payment through "ours", in basis points
     microsoft_client_id: str | None = None
     microsoft_client_secret: SecretStr | None = None
     pinterest_app_id: str | None = None

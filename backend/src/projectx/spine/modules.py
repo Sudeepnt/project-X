@@ -84,6 +84,8 @@ def load_modules() -> list[Module]:
         import projectx.spine.context.store
         import projectx.spine.decisions.jobs
         import projectx.spine.events
+        import projectx.spine.integrations.stripe
+        import projectx.spine.integrations.tools
         import projectx.spine.lifecycle  # noqa: F401
 
         for package in MODULE_PACKAGES:

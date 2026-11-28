@@ -24,11 +24,13 @@ MODEL_MODULES = (
     "projectx.spine.assistant.models",
     "projectx.spine.context.models",
     "projectx.spine.bus",
+    "projectx.spine.integrations.models",
 )
 
 
 DEPARTMENT_MODELS = (
     "projectx.modules.finance.models",
+    "projectx.modules.finance.payments",
     "projectx.modules.ops.models",
     "projectx.modules.people.models",
     "projectx.modules.legal.models",

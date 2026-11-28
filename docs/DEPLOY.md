@@ -78,6 +78,8 @@ sends only the few notes it needs, and providers keep nothing between calls.
 | LinkedIn | `PX_LINKEDIN_CLIENT_ID`, `PX_LINKEDIN_CLIENT_SECRET` | `{BASE}/oauth/linkedin/callback` |
 | TikTok | `PX_TIKTOK_CLIENT_KEY`, `PX_TIKTOK_CLIENT_SECRET` | `{BASE}/oauth/tiktok/callback` |
 | YouTube, Google Ads | `PX_GOOGLE_CLIENT_ID`, `PX_GOOGLE_CLIENT_SECRET`, `PX_GOOGLE_ADS_DEVELOPER_TOKEN` | `{BASE}/oauth/youtube/callback` |
+| Stripe "ours" (Connect, for founders who don't bring keys) | `PX_STRIPE_SECRET_KEY`, `PX_STRIPE_CONNECT_WEBHOOK_SECRET`, optional `PX_STRIPE_APPLICATION_FEE_BP` (platform cut, basis points) | Connect webhook `{BASE}/webhooks/stripe/connect` (events: account.updated, checkout.session.completed, invoice.paid, customer.subscription.*, charge.refunded) |
+| Stripe "own keys" | set per business at `PUT /api/v1/b/{id}/integrations/stripe` | the business adds `{BASE}/webhooks/stripe/{business-slug}` in its Stripe dashboard |
 | Google Calendar | same Google client; enable the Google Calendar API, scope `calendar.events` | `{BASE}/oauth/calendar/google/callback` |
 | Microsoft Outlook calendar | `PX_MICROSOFT_CLIENT_ID`, `PX_MICROSOFT_CLIENT_SECRET` (Entra app, any account type, delegated `Calendars.ReadWrite`, `User.Read`, `offline_access`) | `{BASE}/oauth/calendar/microsoft/callback` |
 | Pinterest | `PX_PINTEREST_APP_ID`, `PX_PINTEREST_APP_SECRET` | `{BASE}/oauth/pinterest/callback` |
@@ -125,3 +127,13 @@ readiness and `/healthz` for liveness.
 - [ ] Secrets in a secret manager, not in the image or repository
 - [ ] Platform apps in live mode only after their reviews pass; webhooks verified (all handlers check signatures)
 - [ ] Alerts on 5xx rate, job failures (`status = 'dead'`) and `/readyz`
+
+
+## Per-business tools ("own keys" or "ours")
+
+Every outside tool is listed at `GET /api/v1/b/{id}/integrations` with the fields it needs. A business owner can:
+`PUT /integrations/{tool}` with `{"values": {...}}` to use its own keys (tested live, sealed in the vault, never
+returned; only the last four characters are shown), `POST /integrations/{tool}/platform` to use the platform's
+(Stripe returns a Connect onboarding link; `POST /integrations/stripe/refresh` re-checks it), or `DELETE` to turn it
+off. Tools today: Stripe, Razorpay, SMTP (own sending domain), an OpenAI-compatible open-model server, Claude (hard
+jobs only). Adding one is a single `register_tool(...)` in `spine/integrations/`.

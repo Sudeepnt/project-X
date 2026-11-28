@@ -48,6 +48,9 @@ class Services:
             ),
         )
         services.gateway.set_cap_resolver(services.compute_cap_micro_usd)
+        from projectx.spine.integrations.service import model_route_resolver
+
+        services.gateway.set_route_resolver(model_route_resolver(services))
         return services
 
     async def compute_cap_micro_usd(self, business_id: uuid.UUID) -> int:

@@ -245,7 +245,9 @@ async def propose_send(session: AsyncSession, business: Business, inv: Invoice, 
     return outcome.decision_id
 
 
-async def issue(session: AsyncSession, business: Business, inv: Invoice, *, actor: Actor) -> None:
+async def issue(
+    session: AsyncSession, business: Business, inv: Invoice, *, actor: Actor, pay_link: str | None = None
+) -> None:
     """Book the invoice (receivable, revenue, tax) and queue the email. Safe to call twice."""
     if inv.status != "draft":
         return
@@ -264,7 +266,7 @@ async def issue(session: AsyncSession, business: Business, inv: Invoice, *, acto
     )
     contact = await session.get(Contact, inv.contact_id) if inv.contact_id else None
     if contact and contact.email and not contact.erased_at:
-        text, html = _invoice_email(business, inv, contact.name)
+        text, html = _invoice_email(business, inv, contact.name, pay_link)
         await queue_email(
             session,
             to=contact.email,
@@ -276,7 +278,7 @@ async def issue(session: AsyncSession, business: Business, inv: Invoice, *, acto
     await _event(session, business.id, "finance.invoice.sent", inv, actor)
 
 
-def _invoice_email(business: Business, inv: Invoice, name: str | None) -> tuple[str, str]:
+def _invoice_email(business: Business, inv: Invoice, name: str | None, pay_link: str | None = None) -> tuple[str, str]:
     rows = [
         f"{line['description']} x {line['quantity']}: {format_money(line['amount_minor'], inv.currency)}"
         for line in inv.lines
@@ -286,7 +288,9 @@ def _invoice_email(business: Business, inv: Invoice, name: str | None) -> tuple[
         + "\n".join(rows)
         + f"\nSubtotal: {format_money(inv.subtotal_minor, inv.currency)}"
         + f"\nTax: {format_money(inv.tax_minor, inv.currency)}"
-        + f"\nTotal due by {inv.due_date}: {format_money(inv.total_minor, inv.currency)}\n\nThank you."
+        + f"\nTotal due by {inv.due_date}: {format_money(inv.total_minor, inv.currency)}"
+        + (f"\n\nPay online: {pay_link}" if pay_link else "")
+        + "\n\nThank you."
     )
     html = "<p>" + "<br>".join(line.replace("&", "&amp;").replace("<", "&lt;") for line in text.split("\n")) + "</p>"
     return text, html
@@ -299,7 +303,15 @@ async def _send_invoice(ctx: ExecutionContext) -> ExecutionResult:
         business = await session.get(Business, ctx.business_id)
         if inv is None or business is None:
             raise NotFound("Invoice not found")
-        await issue(session, business, inv, actor=AGENT)
+        from projectx.modules.finance.payments import pay_url
+        from projectx.spine.integrations.service import is_ready
+
+        link = (
+            pay_url(ctx.services, ctx.business_id, inv.id)
+            if await is_ready(ctx.services, ctx.business_id, "stripe")
+            else None
+        )
+        await issue(session, business, inv, actor=AGENT, pay_link=link)
         return ExecutionResult(
             data={"invoice_id": str(inv.id), "number": inv.number},
             undo_payload={"invoice_id": str(inv.id)},
@@ -348,26 +360,36 @@ async def apply_payment(
     amount_minor: int,
     currency: str,
     cause: dict[str, Any],
+    invoice_id: uuid.UUID | None = None,
 ) -> dict[str, Any]:
     """Match money received to the oldest open invoices of the same customer; book any remainder as a cash sale."""
     await books.setup(session, business)
     today = today_in(business.timezone)
     left = amount_minor
     applied: list[str] = []
+    open_states = ("sent", "partially_paid", "overdue")
+    candidates: list[Invoice] = []
+    if invoice_id is not None:  # paid through that invoice's own link: it comes first, whoever paid
+        target = await session.get(Invoice, invoice_id, with_for_update=True)
+        if target is not None and target.status in open_states and target.currency == currency:
+            candidates.append(target)
     if contact_id is not None:
-        open_invoices = (
-            await session.execute(
-                select(Invoice)
-                .where(
-                    Invoice.contact_id == contact_id,
-                    Invoice.currency == currency,
-                    Invoice.status.in_(("sent", "partially_paid", "overdue")),
+        candidates += [
+            i
+            for i in (
+                await session.execute(
+                    select(Invoice)
+                    .where(
+                        Invoice.contact_id == contact_id, Invoice.currency == currency, Invoice.status.in_(open_states)
+                    )
+                    .order_by(Invoice.due_date, Invoice.created_at)
+                    .with_for_update()
                 )
-                .order_by(Invoice.due_date, Invoice.created_at)
-                .with_for_update()
-            )
-        ).scalars()
-        for inv in open_invoices:
+            ).scalars()
+            if i not in candidates
+        ]
+    if candidates:
+        for inv in candidates:
             if left <= 0:
                 break
             take = min(left, inv.total_minor - inv.paid_minor)
@@ -463,12 +485,17 @@ async def on_milestone(ctx: BusContext) -> dict[str, Any] | None:
 
 @on("gtm.payment.recorded", "finance.book_payment")
 async def on_payment(ctx: BusContext) -> dict[str, Any] | None:
+    from projectx.spine.twin.models import Payment
+
     async with ctx.services.db.tenant(ctx.business_id) as session:
         business = await session.get(Business, ctx.business_id)
         assert business is not None
+        payment = await session.get(Payment, uuid.UUID(ctx.data["payment_id"]))
+        target = (payment.meta or {}).get("invoice_id") if payment else None
         return await apply_payment(
             session,
             business,
+            invoice_id=uuid.UUID(target) if target else None,
             payment_id=uuid.UUID(ctx.data["payment_id"]),
             contact_id=uuid.UUID(ctx.data["contact_id"]) if ctx.data.get("contact_id") else None,
             amount_minor=int(ctx.data["amount_minor"]),
@@ -729,6 +756,11 @@ async def _send_reminder(ctx: ExecutionContext) -> ExecutionResult:
             f"for {owed} was due on {inv.due_date}. If you've already paid, thank you, and please ignore this.\n\n"
             f"{business.name}"
         )
+        from projectx.modules.finance.payments import pay_url
+        from projectx.spine.integrations.service import is_ready
+
+        if await is_ready(ctx.services, ctx.business_id, "stripe"):
+            text += f"\n\nPay online: {pay_url(ctx.services, ctx.business_id, inv.id)}"
         await queue_email(
             session,
             to=contact.email,
