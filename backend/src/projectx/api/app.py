@@ -21,6 +21,7 @@ from projectx.services import Services
 from projectx.settings import Settings, get_settings
 from projectx.spine.api import public_router as spine_public_router
 from projectx.spine.api import router as spine_router
+from projectx.spine.assistant.api import router as assistant_router
 from projectx.spine.billing.api import public_router as billing_public_router
 from projectx.spine.billing.api import router as billing_router
 from projectx.spine.calendar.api import public_router as calendar_public_router
@@ -88,6 +89,7 @@ def create_app(settings: Settings | None = None, services: Services | None = Non
     app.include_router(billing_public_router)
     app.include_router(calendar_router)
     app.include_router(calendar_public_router)
+    app.include_router(assistant_router)
     for module in loaded:
         for router in module.routers:
             app.include_router(router)

@@ -67,6 +67,17 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-28 — The assistant (spine, backend only): `POST /assistant/messages` turns plain words ("move my 3pm to
+  Friday and remind me to send the deck") into checked actions on the calendar and reminders. Built on Reflexion
+  (Shinn et al., NeurIPS 2023): the model plans (Actor); plain code checks the plan against real records (Evaluator:
+  the time is real and ahead, the event ref exists, the slot is free in our and connected calendars, each person
+  resolves to exactly one email, never an invented one); on failure the model gets the failures, writes what it
+  misread and retries, up to 3 trials, one model rung higher each time. When a wrong guess would be costly it asks
+  instead. Last 6 turns are short-term memory; corrections ("no, morning for me is 11") become lessons and the 3 most
+  relevant go into every prompt. Forwarded text is treated as information, never as instructions. Replies are built
+  by code with the outcome first. Invites still wait on decision cards. Migration `0008`. 133 backend tests.
+  Next: the same entry point from WhatsApp and email, a morning brief, and the screens.
+
 - 2026-11-28 — Calendar sync with Google Calendar and Microsoft Outlook. Owners connect with OAuth (PKCE, one-time
   state, tokens only in the vault, refreshed before expiry, revoked access flags the connection and notifies once).
   Every 10 minutes the next 60 days of busy time are copied in as bare start/end pairs (no titles or attendees);
