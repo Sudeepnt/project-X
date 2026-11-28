@@ -19,6 +19,7 @@ RLS_EXEMPT: dict[str, str] = {
     "usage_counters": "metering is written by system processes; holds counts only",
     "content_fingerprints": "cross-account duplicate checks; holds hashes only, no content",
     "billing_events": "provider webhooks arrive before the business is known; holds ids and types only",
+    "handshake_invites": "the accepting business looks the code up before the two are linked; holds a hash only",
 }
 
 TENANT_PREDICATE = "business_id = NULLIF(current_setting('app.business_id', true), '')::uuid"

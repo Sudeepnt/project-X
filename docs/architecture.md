@@ -96,3 +96,35 @@ A module is a package that registers, at import time: its models (tenant tables 
 event types, its action types and executors, its jobs, and a `Module` describing its routers, public routers,
 daily/weekly cycle hooks, briefing items, the numbers it contributes to the cockpit, and live usage counts for plan
 limits. The spine never imports a module directly; it calls the hooks.
+
+## Departments and how they hand work to each other
+
+Each department is a module under `backend/src/projectx/modules/`. They never call each other directly: each one
+appends events to the ledger and subscribes to the events it cares about (`spine/bus.py`). Every delivery is logged in
+`department_handoffs`. Anything outward, costly or irreversible still goes through the policy engine and a decision
+card.
+
+| Event | Who reacts, and how |
+|---|---|
+| `gtm.deal.changed` (won) | Finance drafts the invoice · Operations starts the project and books the kickoff · Legal drafts the agreement |
+| `gtm.payment.recorded` | Finance matches it to open invoices and books it |
+| `gtm.contact.erased` | Operations erases ticket text |
+| `ops.milestone.completed` | Finance invoices the milestone |
+| `ops.feedback.received` | Product links it to a roadmap item |
+| `product.feedback.linked` / `product.item.shipped` | Operations remembers the item / tells every customer who asked |
+| `product.release.published` | GTM drafts the announcement |
+| `finance.invoice.escalated` | Operations puts the customer's projects on hold · Legal drafts a formal demand |
+| `finance.bill.paid` (payroll) | People emails payslips |
+| `people.employee.hired` | Legal drafts the employment contract and NDA, and account set-up tasks |
+| `people.employee.leaving` | Admin creates a removal task for every access, flags assets to reassign |
+| `people.payroll.approved` | Finance books payroll and proposes the payment |
+| `admin.asset.renewing` | Finance books the bill and proposes paying it |
+| weekly | Strategy reads every department's numbers, checks cross-department risks, writes the review |
+
+People decide only the one-way doors: money out (bills, payroll), signing contracts, filing tax, formal demands, and
+anything sent to someone outside the business until that action has earned the right to run alone.
+
+Handshake (`modules/network`): two businesses on the platform link their assistants with a one-time code; each side
+grants scopes (today only `availability`, which means free/busy). A meeting request finds the first slot both are free,
+the other business approves it, and it is booked on both calendars. A request beyond the granted scope is refused,
+logged and reported to that business.

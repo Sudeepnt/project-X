@@ -33,6 +33,8 @@ DEPARTMENT_MODELS = (
     "projectx.modules.people.models",
     "projectx.modules.legal.models",
     "projectx.modules.product.models",
+    "projectx.modules.strategy.models",
+    "projectx.modules.network.models",
 )
 
 

@@ -67,6 +67,17 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-28 — Departments part 6: Strategy and Network. Strategy (`modules/strategy`): a company overview from every
+  department's `numbers`, objectives measured on those numbers (met as soon as reached, missed only after the due
+  date), cross-department risk rules in plain code (runway, cash against payroll, overdue receivables, late replies,
+  late delivery, unsigned contracts, waiting account changes), and a weekly review that announces new risks
+  (`strategy.risk.raised`). Network (`modules/network`): partners with stay-in-touch reminders, and handshake:
+  one-time codes link two businesses' assistants, each side grants scopes (only `availability` today), meeting
+  requests find the first common free slot from both calendars, the other business approves, the meeting is booked on
+  both (checked on both first, so never half-booked), and a request beyond the grant is refused and reported. Map of
+  all handoffs in `docs/architecture.md`. Migration `0015`. 164 backend tests. Still to build: contact platforms
+  (WhatsApp, Gmail, Outlook) as a shared layer, and the screens.
+
 - 2026-11-28 — Departments part 5: Product (`modules/product`). Feature and bug tickets from Operations are matched to
   an open roadmap item or become a new one titled from the customer's own words (a model's match is used only if the
   id is real); rank = (askers × 10 + their value / 1,000) / effort. Specs are the hard job: `hard=True`, so they use the

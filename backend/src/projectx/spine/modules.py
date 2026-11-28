@@ -32,6 +32,8 @@ MODULE_PACKAGES = (
     "projectx.modules.people",
     "projectx.modules.legal",
     "projectx.modules.product",
+    "projectx.modules.strategy",
+    "projectx.modules.network",
 )
 
 
