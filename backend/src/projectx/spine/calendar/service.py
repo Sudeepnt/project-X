@@ -25,6 +25,7 @@ from projectx.kernel.time import utcnow, zone
 from projectx.services import Services
 from projectx.spine.calendar.ics import build_invite
 from projectx.spine.calendar.models import CalendarEvent, CalendarSettings, Reminder
+from projectx.spine.calendar.sync import external_busy, queue_push
 from projectx.spine.calendar.timing import (
     Interval,
     free_slots,
@@ -161,7 +162,8 @@ async def busy_intervals(
     )
     if exclude is not None:
         stmt = stmt.where(CalendarEvent.id != exclude)
-    return [Interval(a, b) for a, b in (await session.execute(stmt)).all()]
+    own = [Interval(a, b) for a, b in (await session.execute(stmt)).all()]
+    return own + [Interval(a, b) for a, b in await external_busy(session, start, end)]
 
 
 async def _check_slot(
@@ -226,14 +228,7 @@ async def schedule_event(
     )
     session.add(event)
     await session.flush()
-    await append(
-        session,
-        business_id=business.id,
-        type="spine.calendar.scheduled",
-        actor=actor,
-        subject=("calendar_event", event.id),
-        data=_event_data(event),
-    )
+    await _record(session, business.id, "spine.calendar.scheduled", actor, event)
     await add_reminder(
         session,
         business,
@@ -267,14 +262,7 @@ async def reschedule_event(
     await _check_slot(session, business.id, start, end, allow_overlap=allow_overlap, exclude=event.id)
     event.starts_at, event.ends_at = start, end
     event.sequence += 1
-    await append(
-        session,
-        business_id=business.id,
-        type="spine.calendar.rescheduled",
-        actor=actor,
-        subject=("calendar_event", event.id),
-        data=_event_data(event),
-    )
+    await _record(session, business.id, "spine.calendar.rescheduled", actor, event)
     now = utcnow()
     for r in await _event_reminders(session, event.id):
         r.due_at, r.last_notified_at = start, None
@@ -292,14 +280,7 @@ async def cancel_event(
         return event, None
     event.status, event.cancelled_at = "cancelled", utcnow()
     event.sequence += 1
-    await append(
-        session,
-        business_id=business.id,
-        type="spine.calendar.cancelled",
-        actor=actor,
-        subject=("calendar_event", event.id),
-        data=_event_data(event),
-    )
+    await _record(session, business.id, "spine.calendar.cancelled", actor, event)
     for r in await _event_reminders(session, event.id):
         r.status, r.next_notify_at = "dismissed", None
     await _cancel_pending_invites(session, business.id, event.id)
@@ -360,6 +341,21 @@ async def _event_reminders(session: AsyncSession, event_id: uuid.UUID) -> list[R
         .scalars()
         .all()
     )
+
+
+async def _record(
+    session: AsyncSession, business_id: uuid.UUID, type_: str, actor: Actor, event: CalendarEvent
+) -> None:
+    """Write the change to the ledger and copy it to connected calendars."""
+    await append(
+        session,
+        business_id=business_id,
+        type=type_,
+        actor=actor,
+        subject=("calendar_event", event.id),
+        data=_event_data(event),
+    )
+    await queue_push(session, business_id, event)
 
 
 def _event_data(e: CalendarEvent) -> dict[str, Any]:
@@ -505,14 +501,7 @@ async def _undo_invite(ctx: ExecutionContext) -> dict[str, Any]:
         if event.status != "cancelled":
             event.status, event.cancelled_at = "cancelled", utcnow()
             event.sequence += 1
-            await append(
-                session,
-                business_id=ctx.business_id,
-                type="spine.calendar.cancelled",
-                actor=Actor.system("undo"),
-                subject=("calendar_event", event.id),
-                data=_event_data(event),
-            )
+            await _record(session, ctx.business_id, "spine.calendar.cancelled", Actor.system("undo"), event)
             for r in await _event_reminders(session, event.id):
                 r.status, r.next_notify_at = "dismissed", None
     return await _send_invites(ctx, "CANCEL")

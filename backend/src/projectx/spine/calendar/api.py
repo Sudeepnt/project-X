@@ -6,19 +6,25 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Any, Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
 
-from projectx.api.deps import BusinessDep, EditorDep
+from projectx.api.deps import BusinessDep, EditorDep, OwnerDep
 from projectx.kernel.errors import NotFound, ValidationFailed
 from projectx.kernel.time import utcnow
+from projectx.services import Services
 from projectx.spine.calendar import service as cal
-from projectx.spine.calendar.models import CalendarEvent, Reminder
+from projectx.spine.calendar import sync
+from projectx.spine.calendar.models import CalendarConnection, CalendarEvent, Reminder
 from projectx.spine.calendar.timing import REPEATS, next_notify_at, validate_working_hours
+from projectx.spine.identity.service import consume_email_token, issue_email_token
+from projectx.spine.jobs.queue import enqueue
 from projectx.spine.ledger.service import Actor
 
 router = APIRouter(prefix="/api/v1/b/{business_id}", tags=["calendar"])
+public_router = APIRouter(tags=["calendar"])
 
 Kind = Literal["meeting", "renewal", "deadline", "payment", "follow_up", "task", "other"]
 Repeat = Literal["none", "daily", "weekly", "monthly", "yearly"]
@@ -309,3 +315,95 @@ async def dismiss(reminder_id: uuid.UUID, ctx: EditorDep) -> dict[str, Any]:
     r = await _reminder(ctx, reminder_id)
     r.status, r.next_notify_at = "dismissed", None
     return cal.reminder_view(r)
+
+
+# ---------------------------------------------------------------- connected calendars (Google, Microsoft)
+
+
+class ConnectionPatch(BaseModel):
+    push_events: bool
+
+
+@router.get("/calendar/connections")
+async def list_connections(ctx: BusinessDep) -> dict[str, Any]:
+    rows = (await ctx.session.execute(select(CalendarConnection).order_by(CalendarConnection.created_at))).scalars()
+    return {"items": [sync.connection_view(c) for c in rows]}
+
+
+@router.get("/calendar/connections/{provider}/start")
+async def connect_start(provider: str, ctx: OwnerDep) -> dict[str, str]:
+    if provider not in sync.PROVIDERS:
+        raise NotFound("Unknown calendar provider")
+    sync.provider_config(provider, ctx.services.settings)  # fails clearly if the app isn't configured
+    verifier, challenge = sync.pkce_pair()
+    state = await issue_email_token(
+        ctx.session,
+        user_id=ctx.user.id,
+        purpose="calendar_oauth",
+        ttl=timedelta(minutes=15),
+        payload={"business_id": str(ctx.business_id), "provider": provider, "verifier": verifier},
+    )
+    return {"url": sync.authorization_url(provider, ctx.services.settings, state=state, challenge=challenge)}
+
+
+@public_router.get("/oauth/calendar/{provider}/callback", include_in_schema=False)
+async def connect_callback(provider: str, request: Request) -> RedirectResponse:
+    services: Services = request.app.state.services
+    back = f"{services.settings.web_url}/settings/calendar"
+    code, state = request.query_params.get("code"), request.query_params.get("state")
+    if request.query_params.get("error") or not code or not state or provider not in sync.PROVIDERS:
+        return RedirectResponse(f"{back}?error=denied", status_code=303)
+    async with services.db.session() as session:
+        try:
+            row = await consume_email_token(session, state, "calendar_oauth")
+        except ValidationFailed:
+            return RedirectResponse(f"{back}?error=expired", status_code=303)
+        payload, user_id = row.payload, row.user_id
+    if payload.get("provider") != provider or user_id is None:
+        return RedirectResponse(f"{back}?error=mismatch", status_code=303)
+    business_id = uuid.UUID(payload["business_id"])
+    try:
+        credentials = await sync.exchange_code(
+            provider, services.settings, services.http, code=code, verifier=payload["verifier"]
+        )
+        label = await sync.account_label(provider, services.http, credentials["access_token"])
+    except Exception:
+        return RedirectResponse(f"{back}?error=connect_failed", status_code=303)
+    async with services.db.tenant(business_id) as session:
+        await sync.save_connection(
+            session, services, business_id, provider=provider, label=label, credentials=credentials, user_id=user_id
+        )
+    return RedirectResponse(f"{back}?connected={provider}", status_code=303)
+
+
+async def _connection(ctx: BusinessDep, connection_id: uuid.UUID) -> CalendarConnection:
+    c = await ctx.session.get(CalendarConnection, connection_id)
+    if c is None:
+        raise NotFound("Calendar connection not found")
+    return c
+
+
+@router.patch("/calendar/connections/{connection_id}")
+async def update_connection(connection_id: uuid.UUID, body: ConnectionPatch, ctx: OwnerDep) -> dict[str, Any]:
+    c = await _connection(ctx, connection_id)
+    c.push_events = body.push_events
+    return sync.connection_view(c)
+
+
+@router.post("/calendar/connections/{connection_id}/sync", status_code=202)
+async def sync_now(connection_id: uuid.UUID, ctx: EditorDep) -> dict[str, Any]:
+    c = await _connection(ctx, connection_id)
+    await enqueue(
+        ctx.session,
+        "spine.calendar.sync",
+        {"connection_id": str(c.id)},
+        business_id=ctx.business_id,
+        idempotency_key=f"calsync:{c.id}:manual:{utcnow():%Y%m%d%H%M}",
+    )
+    return {"queued": True}
+
+
+@router.delete("/calendar/connections/{connection_id}", status_code=204)
+async def remove_connection(connection_id: uuid.UUID, ctx: OwnerDep) -> None:
+    c = await _connection(ctx, connection_id)
+    await sync.disconnect(ctx.session, ctx.services, ctx.business_id, c, actor=Actor.user(ctx.user.id))

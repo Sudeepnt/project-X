@@ -69,6 +69,7 @@ def load_modules() -> list[Module]:
     global _loaded
     if not _loaded:
         import projectx.spine.calendar.service
+        import projectx.spine.calendar.sync
         import projectx.spine.decisions.jobs
         import projectx.spine.events
         import projectx.spine.lifecycle  # noqa: F401

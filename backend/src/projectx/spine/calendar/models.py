@@ -46,6 +46,8 @@ class CalendarEvent(IdMixin, TenantMixin, TimestampMixin, Base):
     # RFC 5545 SEQUENCE: goes up with every change so calendar apps replace the old copy.
     sequence: Mapped[int] = mapped_column(Integer, default=0)
     invite_sequence_sent: Mapped[int | None] = mapped_column(Integer)
+    # Copies on connected calendars: {"<connection id>": "<provider event id>"}
+    external_refs: Mapped[dict[str, Any]] = mapped_column(default=dict, server_default="{}")
     source: Mapped[str] = mapped_column(String(20), default="person")  # person | agent
     created_by: Mapped[uuid.UUID | None]
     cancelled_at: Mapped[datetime | None]
@@ -78,3 +80,29 @@ class Reminder(IdMixin, TenantMixin, TimestampMixin, Base):
     dedupe_key: Mapped[str | None] = mapped_column(String(120))
     created_by: Mapped[uuid.UUID | None]
     completed_at: Mapped[datetime | None]
+
+
+class CalendarConnection(IdMixin, TenantMixin, TimestampMixin, Base):
+    """A Google or Microsoft calendar the business connected. Tokens live in the vault, never here."""
+
+    __tablename__ = "calendar_connections"
+
+    provider: Mapped[str] = mapped_column(String(20))  # google | microsoft
+    label: Mapped[str] = mapped_column(String(200), default="")  # the account address, shown to the owner
+    secret_id: Mapped[uuid.UUID]
+    status: Mapped[str] = mapped_column(String(20), default="connected")  # connected | error
+    push_events: Mapped[bool] = mapped_column(default=True)  # copy our events onto this calendar
+    last_synced_at: Mapped[datetime | None]
+    last_error: Mapped[str | None] = mapped_column(Text)
+    connected_by: Mapped[uuid.UUID | None]
+
+
+class CalendarBusy(IdMixin, TenantMixin, Base):
+    """Busy time read from a connected calendar. Only start and end: no titles, no attendees."""
+
+    __tablename__ = "calendar_busy"
+    __table_args__ = (Index("ix_calendar_busy_range", "business_id", "starts_at", "ends_at"),)
+
+    connection_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("calendar_connections.id", ondelete="CASCADE"))
+    starts_at: Mapped[datetime]
+    ends_at: Mapped[datetime]

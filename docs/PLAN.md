@@ -67,6 +67,14 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-28 — Calendar sync with Google Calendar and Microsoft Outlook. Owners connect with OAuth (PKCE, one-time
+  state, tokens only in the vault, refreshed before expiry, revoked access flags the connection and notifies once).
+  Every 10 minutes the next 60 days of busy time are copied in as bare start/end pairs (no titles or attendees);
+  free, cancelled and declined events don't count, and copies we placed ourselves are skipped so a moved meeting
+  never clashes with its old copy. Free-time search and double-booking checks include this busy time. Our events are
+  copied out with no attendees (the provider never emails anyone; invitations stay an approved action), updated on
+  reschedule and deleted on cancel. Migration `0007`. 128 backend tests.
+
 - 2026-11-28 — Calendar and reminders (spine, backend only; screen placement to be decided). Calendar: working
   hours per business, schedule / reschedule / cancel with double-booking checks, and a free-time finder (buffers,
   minimum notice, slots aligned to the local clock, correct across daylight-saving changes). Inviting people is the

@@ -108,6 +108,8 @@ class Settings(BaseSettings):
     google_client_id: str | None = None
     google_client_secret: SecretStr | None = None
     google_ads_developer_token: SecretStr | None = None
+    microsoft_client_id: str | None = None
+    microsoft_client_secret: SecretStr | None = None
     pinterest_app_id: str | None = None
     pinterest_app_secret: SecretStr | None = None
     telegram_webhook_secret: SecretStr | None = None

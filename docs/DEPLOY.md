@@ -74,6 +74,8 @@ unsafe values (development keys, plain-http URLs, no real mail server, S3 withou
 | LinkedIn | `PX_LINKEDIN_CLIENT_ID`, `PX_LINKEDIN_CLIENT_SECRET` | `{BASE}/oauth/linkedin/callback` |
 | TikTok | `PX_TIKTOK_CLIENT_KEY`, `PX_TIKTOK_CLIENT_SECRET` | `{BASE}/oauth/tiktok/callback` |
 | YouTube, Google Ads | `PX_GOOGLE_CLIENT_ID`, `PX_GOOGLE_CLIENT_SECRET`, `PX_GOOGLE_ADS_DEVELOPER_TOKEN` | `{BASE}/oauth/youtube/callback` |
+| Google Calendar | same Google client; enable the Google Calendar API, scope `calendar.events` | `{BASE}/oauth/calendar/google/callback` |
+| Microsoft Outlook calendar | `PX_MICROSOFT_CLIENT_ID`, `PX_MICROSOFT_CLIENT_SECRET` (Entra app, any account type, delegated `Calendars.ReadWrite`, `User.Read`, `offline_access`) | `{BASE}/oauth/calendar/microsoft/callback` |
 | Pinterest | `PX_PINTEREST_APP_ID`, `PX_PINTEREST_APP_SECRET` | `{BASE}/oauth/pinterest/callback` |
 | Telegram | `PX_TELEGRAM_WEBHOOK_SECRET` | set per bot automatically |
 | Discord bot | `PX_DISCORD_APPLICATION_ID`, `PX_DISCORD_PUBLIC_KEY`, `PX_DISCORD_BOT_TOKEN`, `PX_DISCORD_CLIENT_SECRET` | interactions `{BASE}/webhooks/discord/interactions`; redirect `{BASE}/oauth/discord/bot/callback`; then run `projectx discord-commands` once |
