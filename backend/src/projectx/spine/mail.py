@@ -6,6 +6,7 @@ from a background job so a slow mail server never slows a request down.
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from email.message import EmailMessage
 from email.utils import formataddr, make_msgid, parseaddr
 from pathlib import Path
@@ -18,6 +19,14 @@ from projectx.settings import Settings
 
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
 _env = Environment(loader=FileSystemLoader(TEMPLATES_DIR), autoescape=select_autoescape(["html"]), enable_async=False)
+
+
+@dataclass(frozen=True)
+class Attachment:
+    filename: str
+    mime: str  # e.g. "text/calendar"
+    data: bytes
+    params: dict[str, str] = field(default_factory=dict)  # e.g. {"method": "REQUEST"} for invitations
 
 
 def render(template: str, **context: Any) -> str:
@@ -38,6 +47,7 @@ class Mailer:
         from_addr: str | None = None,
         reply_to: str | None = None,
         headers: dict[str, str] | None = None,
+        attachments: list[Attachment] | None = None,
     ) -> str:
         message = EmailMessage()
         sender_name, sender_email = parseaddr(from_addr or self._s.email_from)
@@ -53,6 +63,9 @@ class Mailer:
             message[key] = value
         message.set_content(text)
         message.add_alternative(html, subtype="html")
+        for a in attachments or []:
+            maintype, _, subtype = a.mime.partition("/")
+            message.add_attachment(a.data, maintype=maintype, subtype=subtype, filename=a.filename, params=a.params)
         await aiosmtplib.send(
             message,
             hostname=self._s.smtp_host,

@@ -23,6 +23,7 @@ from projectx.spine.api import public_router as spine_public_router
 from projectx.spine.api import router as spine_router
 from projectx.spine.billing.api import public_router as billing_public_router
 from projectx.spine.billing.api import router as billing_router
+from projectx.spine.calendar.api import router as calendar_router
 from projectx.spine.identity.api import router as identity_router
 from projectx.spine.modules import load_modules
 from projectx.spine.tenancy.api import router as tenancy_router
@@ -84,6 +85,7 @@ def create_app(settings: Settings | None = None, services: Services | None = Non
     app.include_router(spine_public_router)
     app.include_router(billing_router)
     app.include_router(billing_public_router)
+    app.include_router(calendar_router)
     for module in loaded:
         for router in module.routers:
             app.include_router(router)

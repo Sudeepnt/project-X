@@ -20,6 +20,7 @@ MODEL_MODULES = (
     "projectx.spine.memory.models",
     "projectx.spine.twin.models",
     "projectx.spine.billing.models",
+    "projectx.spine.calendar.models",
 )
 
 

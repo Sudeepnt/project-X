@@ -67,6 +67,17 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-28 — Calendar and reminders (spine, backend only; screen placement to be decided). Calendar: working
+  hours per business, schedule / reschedule / cancel with double-booking checks, and a free-time finder (buffers,
+  minimum notice, slots aligned to the local clock, correct across daylight-saving changes). Inviting people is the
+  action `spine.calendar.send_invite` (Ask first by default): an email with an .ics file; each change raises the
+  SEQUENCE, retires any unsent older card, and a cancellation only goes to people who were invited. Reminders: one
+  table for anything (meetings, renewals, deadlines, payments, follow-ups) with lead times, repeats (kept on local
+  wall-clock time), snooze and done; a periodic job fires them into notifications. `POST /reminders/capture` lets
+  the model read any text and decide what to remember; code checks the date is real, quoted from the text, not
+  past, and not already stored. Attendee emails are covered by contact export and erasure. Migration `0006`.
+  125 backend tests. Next: Google / Microsoft calendar sync (busy times in, events out) and the screens.
+
 - 2026-11-24 — Accessibility (M5 complete): axe-core audit, WCAG 2.2 AA plus best practices, on all 18 screens in
   light and dark mode — 203 contrast issues and 4 structural ones found, now zero. Text tokens darkened just enough
   (muted, faint, warning, success, error), accent split into a text colour and a fill colour so both pass in dark

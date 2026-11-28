@@ -14,7 +14,7 @@ import uuid
 from typing import Any
 
 import orjson
-from sqlalchemy import select, update
+from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from projectx.kernel.errors import NotFound
@@ -22,12 +22,22 @@ from projectx.kernel.ids import short_code
 from projectx.kernel.time import utcnow
 from projectx.modules.gtm.models import DataRequest, InboxItem, Message, SequenceEnrollment
 from projectx.services import Services
+from projectx.spine.calendar.models import CalendarEvent
 from projectx.spine.ledger.service import Actor, append
 from projectx.spine.twin.models import Consent, Contact, ContactStageChange, Deal, Payment, Touch
 
 
 def email_hash(email: str) -> str:
     return hashlib.sha256(email.strip().lower().encode()).hexdigest()
+
+
+async def _events_with(session: AsyncSession, contact: Contact) -> list[CalendarEvent]:
+    """Calendar events this person is linked to or invited to (attendees hold their email)."""
+    conditions = [CalendarEvent.contact_id == contact.id]
+    if contact.email:
+        conditions.append(CalendarEvent.attendees.contains([{"email": contact.email.strip().lower()}]))
+    stmt = select(CalendarEvent).where(CalendarEvent.business_id == contact.business_id, or_(*conditions))
+    return list((await session.execute(stmt)).scalars())
 
 
 async def export_contact(session: AsyncSession, contact: Contact) -> dict[str, Any]:
@@ -54,6 +64,10 @@ async def export_contact(session: AsyncSession, contact: Contact) -> dict[str, A
                 "inbox": await rows(InboxItem, InboxItem.contact_id == cid),
                 "deals": await rows(Deal, Deal.contact_id == cid),
                 "payments": await rows(Payment, Payment.contact_id == cid),
+                "calendar_events": [
+                    {"id": e.id, "title": e.title, "starts_at": e.starts_at, "ends_at": e.ends_at, "status": e.status}
+                    for e in await _events_with(session, contact)
+                ],
                 "exported_at": utcnow(),
             },
             default=str,
@@ -64,6 +78,13 @@ async def export_contact(session: AsyncSession, contact: Contact) -> dict[str, A
 
 async def erase_contact(session: AsyncSession, contact: Contact, *, actor: Actor) -> None:
     bid, cid = contact.business_id, contact.id
+    for event in await _events_with(session, contact):
+        email = (contact.email or "").strip().lower()
+        event.attendees = [
+            {"email": "erased@invalid", "name": None} if a.get("email") == email else a for a in event.attendees
+        ]
+        if event.contact_id == cid:
+            event.contact_id = None
     contact.email = contact.phone = contact.name = contact.company = contact.job_title = None
     contact.handles, contact.attributes, contact.tags = {}, {}, []
     contact.first_touch = contact.last_touch = None

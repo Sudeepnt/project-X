@@ -68,6 +68,7 @@ def load_modules() -> list[Module]:
     """Import every module package once. Importing registers actions, events, jobs and routes."""
     global _loaded
     if not _loaded:
+        import projectx.spine.calendar.service
         import projectx.spine.decisions.jobs
         import projectx.spine.events
         import projectx.spine.lifecycle  # noqa: F401
