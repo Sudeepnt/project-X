@@ -67,6 +67,13 @@ Future modules (finance, legal, people…) plug in the same way.
 
 (Newest first.)
 
+- 2026-11-28 — Departments part 5: Product (`modules/product`). Feature and bug tickets from Operations are matched to
+  an open roadmap item or become a new one titled from the customer's own words (a model's match is used only if the
+  id is real); rank = (askers × 10 + their value / 1,000) / effort. Specs are the hard job: `hard=True`, so they use the
+  hard-jobs model (Claude) and nothing else here does. A release marks items shipped; Operations drafts an "it's live"
+  reply to every ticket that asked, and GTM drafts an announcement for the connected channels (through its normal
+  review and approval). Migration `0014`. 161 backend tests.
+
 - 2026-11-28 — Departments part 4: Legal and admin (`modules/legal`). Won deal → service agreement drafted from the
   template with the deal's facts; signing is a manual task, and once signed its notice and end dates become reminders.
   Hired → employment agreement and NDA drafted, and a set-up task for every standard account; leaving → a removal

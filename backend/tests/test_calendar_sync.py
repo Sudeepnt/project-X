@@ -77,8 +77,11 @@ async def test_connect_flow_stores_tokens_in_the_vault(
         assert "error=expired" in replay.headers["location"]  # a state works once
         await Worker(services).run_until_idle()
     items = (await founder.get(f"{base}/calendar/connections")).json()["items"]
-    assert [(c["provider"], c["label"], c["status"]) for c in items] == [("google", "founder@example.com", "connected")]
-    assert items[0]["last_synced_at"] is not None
+    # Rare full-suite failure seen twice on 2026-11-28 and not reproduced since: report the state if it recurs.
+    assert [(c["provider"], c["label"], c["status"]) for c in items] == [
+        ("google", "founder@example.com", "connected")
+    ], items
+    assert items[0]["last_synced_at"] is not None, items
     assert "a1" not in json.dumps(items) and "r1" not in json.dumps(items)
 
 

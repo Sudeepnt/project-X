@@ -28,6 +28,7 @@ for _name in (
     "projectx.modules.gtm.ads.service",
     "projectx.modules.gtm.analytics.benchmarks",
     "projectx.modules.gtm.learning.experiments",
+    "projectx.modules.gtm.reactions",
 ):
     importlib.import_module(_name)
 

@@ -69,7 +69,7 @@ class BusContext:
     correlation_id: uuid.UUID
 
     @property
-    def cause(self) -> dict[str, uuid.UUID]:
+    def cause(self) -> dict[str, Any]:
         """Pass to ``append(..., **ctx.cause)`` so the new event links back to this one."""
         return {"correlation_id": self.correlation_id, "causation_id": self.event_id}
 
